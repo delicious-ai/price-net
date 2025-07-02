@@ -8,3 +8,15 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Data directories
+data/
+ckpt/
+logs/
+wandb/
+
+# Other stuff
+.DS_Store
+.env
+ignore/
+.ruff_cache/
