@@ -1,6 +1,6 @@
-# PriceNet: A Neural Pipeline for Product-Price Attribution in Retail Shelf Images
+# Learnable Product-Price Attribution for Retail Shelf Images
 
-This is the official implementation of "PriceNet: A Neural Pipeline for Product-Price Attribution in Retail Shelf Images", a novel approach to solving retail price attribution using neural networks.
+This is the official implementation of "Learnable Product-Price Attribution for Retail Shelf Images", a novel approach to solving retail price attribution using neural networks.
 
 ## Getting Started
 

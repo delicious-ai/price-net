@@ -1,19 +1,22 @@
 [project]
 name = "price-net"
 version = "0.1.0"
-description = "Official implementation of 'PriceNet: A Neural Pipeline for Product-Price Attribution in Retail Shelf Images'."
+description = "Official implementation of 'Learnable Product-Price Attribution for Retail Shelf Images'."
 readme = "README.md"
 authors = [
     { name = "Spencer Young", email = "spencermyoung513@gmail.com" }
 ]
 requires-python = ">=3.10"
 dependencies = [
+    "ipykernel>=6.29.5",
+    "ipynb>=0.5.1",
     "lightning>=2.5.2",
     "matplotlib>=3.10.3",
     "numpy>=2.2.6",
     "polars>=1.31.0",
     "pre-commit>=4.2.0",
     "pydantic>=2.11.7",
+    "pytest>=8.4.1",
     "ruff>=0.12.1",
     "scipy>=1.15.3",
     "seaborn>=0.13.2",
@@ -21,6 +24,10 @@ dependencies = [
     "torchvision>=0.22.1",
     "wandb>=0.21.0",
 ]
+
+[project.scripts]
+train = "price_net.scripts.train:main"
+evaluate = "price_net.scripts.evaluate:main"
 
 [build-system]
 requires = ["hatchling"]
