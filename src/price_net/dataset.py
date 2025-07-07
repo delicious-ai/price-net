@@ -28,6 +28,7 @@ class PriceAssociationDataset(Dataset):
     DEPTH_MAPS_DIR = "depth-maps"
     RAW_PRICE_SCENES_FNAME = "raw_price_scenes.json"
     INSTANCES_FNAME = "instances.parquet"
+    MAX_TOKENS_PER_SCENE = 1024
 
     def __init__(
         self,
@@ -118,17 +119,38 @@ class PriceAssociationDataset(Dataset):
                 .alias("centroid_dist")
             )
             instances = (
-                instances.sort("centroid_dist")
-                .group_by(["scene_id", "group_id"])
+                instances.sort("scene_id", "price_id", "group_id", "centroid_dist")
+                .group_by(["scene_id", "price_id", "group_id"], maintain_order=True)
                 .agg(
-                    pl.first("price_id"),
                     pl.first("product_bbox"),
                     pl.first("price_bbox"),
                     pl.first("is_associated"),
                 )
             )
         if self.prediction_strategy == PredictionStrategy.JOINT:
-            instances = instances.group_by("scene_id").agg(
+            # Split scenes into random sub-chunks if we exceed max # tokens (very rare).
+            new_rows = []
+            for scene_id, group in instances.group_by("scene_id", maintain_order=True):
+                num_rows = group.height
+                if num_rows <= self.MAX_TOKENS_PER_SCENE:
+                    new_rows.append(group)
+                else:
+                    group = group.sample(
+                        fraction=1.0, with_replacement=False, seed=1998
+                    ).with_columns(
+                        (pl.arange(0, group.height) // self.MAX_TOKENS_PER_SCENE).alias(
+                            "chunk_id"
+                        )
+                    )
+                    chunked = group.partition_by("chunk_id", maintain_order=True)
+                    for i, chunk in enumerate(chunked):
+                        chunk = chunk.with_columns(
+                            pl.lit(f"{scene_id}__{i}").alias("scene_id")
+                        ).drop(pl.col("chunk_id"))
+                        new_rows.append(chunk)
+                instances = pl.concat(new_rows)
+
+            instances = instances.group_by("scene_id", maintain_order=True).agg(
                 pl.col("price_id"),
                 pl.col("group_id"),
                 pl.col("price_bbox"),

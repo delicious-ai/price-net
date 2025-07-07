@@ -1,6 +1,5 @@
 from pathlib import Path
 from typing import Callable
-from typing import Literal
 
 import lightning as L
 import torch
@@ -48,28 +47,25 @@ class PriceAssociationDataModule(L.LightningDataModule):
         self.transform = self._get_transform()
         self.collate_fn = self._get_collate_fn()
 
-    def setup(self, stage: Literal["fit", "validate", "test", "predict"]):
-        if stage == "fit":
-            self.train = PriceAssociationDataset(
-                root=self.data_dir / "train",
-                input_transform=self.transform,
-                input_reduction=self.input_reduction,
-                prediction_strategy=self.prediction_strategy,
-            )
-        elif stage == "validate":
-            self.val = PriceAssociationDataset(
-                root=self.data_dir / "val",
-                input_transform=self.transform,
-                input_reduction=self.input_reduction,
-                prediction_strategy=self.prediction_strategy,
-            )
-        elif stage in ("test", "predict"):
-            self.test = PriceAssociationDataset(
-                root=self.data_dir / "test",
-                input_transform=self.transform,
-                input_reduction=self.input_reduction,
-                prediction_strategy=self.prediction_strategy,
-            )
+    def setup(self, stage: str):
+        self.train = PriceAssociationDataset(
+            root_dir=self.data_dir / "train",
+            input_transform=self.transform,
+            input_reduction=self.input_reduction,
+            prediction_strategy=self.prediction_strategy,
+        )
+        self.val = PriceAssociationDataset(
+            root_dir=self.data_dir / "val",
+            input_transform=self.transform,
+            input_reduction=self.input_reduction,
+            prediction_strategy=self.prediction_strategy,
+        )
+        self.test = PriceAssociationDataset(
+            root_dir=self.data_dir / "test",
+            input_transform=self.transform,
+            input_reduction=self.input_reduction,
+            prediction_strategy=self.prediction_strategy,
+        )
 
     def train_dataloader(self):
         return DataLoader(
@@ -114,7 +110,10 @@ class PriceAssociationDataModule(L.LightningDataModule):
         def transform(
             price_bbox: torch.Tensor, prod_bbox: torch.Tensor
         ) -> torch.Tensor:
-            return concatenation_op(price_bbox, prod_bbox)[mask]
+            if price_bbox.ndim == 2:
+                return concatenation_op(price_bbox, prod_bbox)[:, mask]
+            else:
+                return concatenation_op(price_bbox, prod_bbox)[mask]
 
         return transform
 

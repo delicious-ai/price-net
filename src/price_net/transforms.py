@@ -43,5 +43,5 @@ class ConcatenateWithCentroidDiff(InputTransform):
         price_centroid = price_bbox[:, : self.centroid_dim]
         centroid_diff = prod_centroid - price_centroid
         prod_wh = prod_bbox[:, self.centroid_dim :]
-        result = torch.cat([centroid_diff, prod_wh, price_bbox])
+        result = torch.cat([centroid_diff, prod_wh, price_bbox], dim=1)
         return result.squeeze(0) if flat else result
