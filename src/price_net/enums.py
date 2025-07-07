@@ -26,8 +26,8 @@ class FeaturizationMethod(Enum):
     CENTROID_DIFF = "centroid_diff"
 
     """
-    - CENTROID: The first 3 features of our "association vector" are the centroid of the product in the group nearest to the specified price tag.
-    - CENTROID_DIFF: The first 3 features of our "association vector" are the difference between the product and price tag centroids.
+    CENTROID: The first 3 features of our "association vector" are the product centroid.
+    CENTROID_DIFF: The first 3 features of our "association vector" are the difference between the product and price tag centroids.
     """
 
 
@@ -65,3 +65,9 @@ class PriceType(str, Enum):
                 except KeyError:
                     return cls.UNKNOWN
         return cls.UNKNOWN
+
+
+class Accelerator(Enum):
+    CPU = "cpu"
+    GPU = "gpu"
+    MPS = "mps"
