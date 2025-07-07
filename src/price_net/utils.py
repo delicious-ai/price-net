@@ -1,9 +1,15 @@
+from typing import Sequence
+
 import torch
+from matplotlib import patches
 from matplotlib import pyplot as plt
 from price_net.schema import BoundingBox
 from price_net.schema import PriceAttributionScene
 from seaborn import color_palette
 from torch.nn.utils.rnn import pad_sequence
+
+
+Color = str | Sequence[float]
 
 
 def parse_bboxes(
@@ -59,7 +65,16 @@ def scene_level_collate_fn(
 
 def plot_price_attribution_scene(
     scene: PriceAttributionScene, ax: plt.Axes | None = None
-) -> plt.Axes:
+) -> tuple[plt.Axes, dict[str, Color]]:
+    """Plot the given price attribution scene as a graph (where nodes are the 2d centroids and edges exist if a product/price are associated).
+
+    Args:
+        scene (PriceAttributionScene): The scene to plot.
+        ax (plt.Axes | None, optional): If specified, the axes to plot on. Defaults to None (creates one).
+
+    Returns:
+        tuple[plt.Axes, dict[str, Color]: The axes on which the scene is plotted, and a dict that specifies which color each product group was assigned.
+    """
     if ax is None:
         ax = plt.gca()
 
@@ -70,21 +85,29 @@ def plot_price_attribution_scene(
         id_: (bbox.cx, bbox.cy) for id_, bbox in scene.price_bboxes.items()
     }
     prod_id_to_group_idx = {}
+    prod_id_to_group_id = {}
     for id_ in scene.product_bboxes.keys():
         for idx, group in enumerate(scene.product_groups):
             if id_ in group.product_bbox_ids:
                 prod_id_to_group_idx[id_] = idx
+                prod_id_to_group_id[id_] = group.group_id
                 break
 
     colors = color_palette(n_colors=len(scene.product_groups))
+    color_key = {}
+    plotted = set()
     for price_group in scene.price_groups:
         for price_bbox_id in price_group.price_bbox_ids:
             price_centroid = price_centroids[price_bbox_id]
             ax.scatter(*price_centroid, marker="x", color="black")
+            plotted.add(price_bbox_id)
             for prod_bbox_id in price_group.product_bbox_ids:
                 prod_centroid = product_centroids[prod_bbox_id]
-                prod_group_idx = prod_id_to_group_idx[prod_bbox_id]
-                ax.scatter(*prod_centroid, marker="o", color=colors[prod_group_idx])
+                color = colors[prod_id_to_group_idx[prod_bbox_id]]
+                group_id = prod_id_to_group_id[prod_bbox_id]
+                if group_id not in color_key:
+                    color_key[group_id] = color
+                ax.scatter(*prod_centroid, marker="o", color=color)
                 ax.plot(
                     [price_centroid[0], prod_centroid[0]],
                     [price_centroid[1], prod_centroid[1]],
@@ -92,9 +115,62 @@ def plot_price_attribution_scene(
                     alpha=0.5,
                     lw=0.5,
                 )
+                plotted.add(prod_bbox_id)
+
+    unmatched_prices = [
+        price_centroids[id_] for id_ in set(price_centroids.keys()).difference(plotted)
+    ]
+    unmatched_products = [
+        product_centroids[id_]
+        for id_ in set(product_centroids.keys()).difference(plotted)
+    ]
+    for centroid in unmatched_prices:
+        ax.scatter(*centroid, marker="x", color="black")
+    for centroid in unmatched_products:
+        ax.scatter(*centroid, marker="o", edgecolors="black", facecolors="none")
 
     ax.set_xlim(0.0, 1.0)
     ax.set_ylim(1.0, 0.0)
     ax.set_aspect("equal")
     ax.set_title(scene.scene_id, fontsize=10)
-    return ax
+    return ax, color_key
+
+
+def plot_bboxes(
+    bboxes: list[BoundingBox],
+    ax: plt.Axes,
+    linestyle: str = "solid",
+    color: str | tuple[float, float, float] | None = None,
+    width: float = 1.0,
+    height: float = 1.0,
+):
+    """Plot the given list of bounding boxes on the provided axes.
+
+    Args:
+        bboxes (torch.Tensor): The bounding boxes to plot.
+        ax (plt.Axes): The axes to plot the boxes on.
+        linestyle (str, optional): Linestyle for the bounding box (passed to matplotlib). Defaults to "solid".
+        color (str | tuple[float, float, float] | None, optional): Edge color for the bounding box. Defaults to None.
+        width (float): The desired width of the plot (bboxes will be rescaled from relative to abs. coordinates).
+        height (float): The desired height of the plot (bboxes will be rescaled from relative to abs. coordinates).
+    """
+    ax.set_xlim(0, width)
+    ax.set_ylim(height, 0)
+    ax.set_aspect("equal")
+
+    for bbox in bboxes:
+        x, y, w, h = bbox.cx, bbox.cy, bbox.w, bbox.h
+        x = x * width
+        y = y * height
+        w = w * width
+        h = h * height
+        rect = patches.Rectangle(
+            xy=(x - w / 2, y - h / 2),
+            width=w,
+            height=h,
+            linewidth=1.5,
+            edgecolor=color or "k",
+            facecolor="none",
+            linestyle=linestyle,
+        )
+        ax.add_patch(rect)

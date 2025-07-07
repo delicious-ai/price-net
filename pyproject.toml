@@ -10,6 +10,7 @@ requires-python = ">=3.10"
 dependencies = [
     "ipykernel>=6.29.5",
     "ipynb>=0.5.1",
+    "ipywidgets>=8.1.7",
     "lightning>=2.5.2",
     "matplotlib>=3.10.3",
     "numpy>=2.2.6",
