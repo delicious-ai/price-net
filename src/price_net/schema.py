@@ -60,32 +60,21 @@ class BulkOfferPrice(Price):
         return f"{self.quantity} / {self.currency}{self.total_price:.2f}"
 
 
-class BuyNForXGetMForYPrice(Price):
-    price_type: Literal[PriceType.BUY_N_FOR_X_GET_M_FOR_Y] = (
-        PriceType.BUY_N_FOR_X_GET_M_FOR_Y
-    )
+class BuyXGetYForZPrice(Price):
+    price_type: Literal[PriceType.BUY_X_GET_Y_FOR_Z] = PriceType.BUY_X_GET_Y_FOR_Z
     buy_quantity: int
-    buy_price: float | None = None
     get_quantity: int
     get_price: float | None = None
 
     @computed_field
     @property
-    def unit_price(self) -> float | None:
-        total_items = self.buy_quantity + self.get_quantity
-        if self.buy_price is not None and self.get_price is not None:
-            total_cost = self.buy_price + self.get_price
-            return total_cost / total_items if total_items else None
-        else:
-            return None
+    def unit_price(self) -> None:
+        return None
 
     @computed_field
     @property
     def price_text(self) -> str:
-        return (
-            f"Buy {self.buy_quantity} for {self.currency}{self.buy_price:.2f}, "
-            f"Get {self.get_quantity} for {self.currency}{self.get_price:.2f}"
-        )
+        return f"Buy {self.buy_quantity}, get {self.get_quantity} for {self.currency}{self.get_price:.2f}"
 
 
 class UnknownPrice(Price):
@@ -118,7 +107,7 @@ class MiscPrice(Price):
 
 
 PriceModelType = Annotated[
-    StandardPrice | BulkOfferPrice | BuyNForXGetMForYPrice | UnknownPrice | MiscPrice,
+    StandardPrice | BulkOfferPrice | BuyXGetYForZPrice | UnknownPrice | MiscPrice,
     Field(discriminator="price_type"),
 ]
 
@@ -131,6 +120,7 @@ class ProductPrice(BaseModel):
 class BoundingBox(BaseModel):
     cx: float = Field(ge=0.0, le=1.0)
     cy: float = Field(ge=0.0, le=1.0)
+    cz: float = Field(ge=0.0, le=1.0)
     w: float = Field(ge=0.0, le=1.0)
     h: float = Field(ge=0.0, le=1.0)
 

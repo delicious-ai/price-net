@@ -21,3 +21,4 @@ wandb/
 ignore/
 .ruff_cache/
 .vscode/
+.pytest_cache/

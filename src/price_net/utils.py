@@ -6,66 +6,24 @@ from seaborn import color_palette
 from torch.nn.utils.rnn import pad_sequence
 
 
-def xywh_to_xyzwh(xywh: torch.Tensor, depth_map: torch.Tensor) -> torch.Tensor:
-    """Convert the provided xywh bboxes to xyzwh, given a depth map for the image the bboxes came from.
-
-    Args:
-        xywh (torch.Tensor): The bboxes to convert, with shape (N, 4).
-        depth_map (torch.Tensor): A depth map for the image the bboxes came from, with shape (H, W).
-
-    Returns:
-        torch.Tensor: The resultant xyzwh bboxes, with shape (N, 5).
-    """
-    H, W = depth_map.shape
-    N = xywh.shape[0]
-
-    x = xywh[:, 0] * W
-    y = xywh[:, 1] * H
-    w = xywh[:, 2] * W
-    h = xywh[:, 3] * H
-
-    x1 = (x - w).clamp(0, W - 1)
-    y1 = (y - h).clamp(0, H - 1)
-    x2 = (x + w).clamp(0, W - 1)
-    y2 = (y + h).clamp(0, H - 1)
-
-    yy, xx = torch.meshgrid(torch.arange(H), torch.arange(W), indexing="ij")
-    xx = xx.unsqueeze(0).expand(N, -1, -1)
-    yy = yy.unsqueeze(0).expand(N, -1, -1)
-
-    x1 = x1[:, None, None]
-    x2 = x2[:, None, None]
-    y1 = y1[:, None, None]
-    y2 = y2[:, None, None]
-
-    mask = (xx >= x1) & (xx <= x2) & (yy >= y1) & (yy <= y2)
-    depth = depth_map.unsqueeze(0).expand(N, -1, -1)
-
-    masked_depth = depth * mask
-    sum_depth = masked_depth.sum(dim=(1, 2))
-    count = mask.sum(dim=(1, 2)).clamp(min=1)
-    z = sum_depth / count
-
-    xyzwh = torch.cat([xywh[:, :2], z.view(-1, 1), xywh[:, 2:]], dim=1)
-    return xyzwh
-
-
 def parse_bboxes(
     bbox_dict: dict[str, BoundingBox],
 ) -> tuple[torch.Tensor, list[str], dict[str, int]]:
     """Parse the given bbox dict and return a tensor representation (along with helper objects for indexing).
 
     Args:
-        bbox_dict (dict[str, BoundingBox]): Dict mapping N bbox IDs to their associated xywh coordinates.
+        bbox_dict (dict[str, BoundingBox]): Dict mapping N bbox IDs to their associated xyzwh coordinates.
 
     Returns:
-        - torch.Tensor: A (N, 4) tensor of bbox coordinates.
+        - torch.Tensor: A (N, 5) tensor of bbox coordinates.
         - list[str]: A list of bbox IDs, with a 1:1 correspondence to the bbox tensor.
         - dict[str, int]: A dict mapping each bbox ID to its corresponding row in the bbox tensor.
     """
     bbox_tensor = torch.stack(
         [
-            torch.tensor([bbox.cx, bbox.cy, bbox.w, bbox.h], dtype=torch.float32)
+            torch.tensor(
+                [bbox.cx, bbox.cy, bbox.cz, bbox.w, bbox.h], dtype=torch.float32
+            )
             for bbox in bbox_dict.values()
         ]
     )

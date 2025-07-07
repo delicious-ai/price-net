@@ -13,6 +13,7 @@ dependencies = [
     "lightning>=2.5.2",
     "matplotlib>=3.10.3",
     "numpy>=2.2.6",
+    "opencv-python>=4.11.0.86",
     "polars>=1.31.0",
     "pre-commit>=4.2.0",
     "pydantic>=2.11.7",

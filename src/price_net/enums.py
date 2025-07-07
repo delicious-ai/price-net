@@ -27,7 +27,7 @@ class PriceType(str, Enum):
     # Buy multiple to get sale (3 for $5.00)
     BULK_OFFER = "BULK_OFFER"
     # Covers BOGO, "buy 3 for $3, get 1 for $1.50", etc.
-    BUY_N_FOR_X_GET_M_FOR_Y = "BUY_N_FOR_X_GET_M_FOR_Y"
+    BUY_X_GET_Y_FOR_Z = "BUY_X_GET_Y_FOR_Z"
     # Catch all for other types of pricing
     MISC = "MISC"
     # Price tag is too blurry or otherwise unreadable
@@ -39,7 +39,7 @@ class PriceType(str, Enum):
             0: cls.UNKNOWN,
             1: cls.STANDARD,
             2: cls.BULK_OFFER,
-            3: cls.BUY_N_FOR_X_GET_M_FOR_Y,
+            3: cls.BUY_X_GET_Y_FOR_Z,
             4: cls.MISC,
         }
         if isinstance(value, cls):
