@@ -136,7 +136,7 @@ class ProductGroup(BaseModel):
     product_bbox_ids: set[str]
 
 
-class PriceAttributionScene(BaseModel):
+class PriceAssociationScene(BaseModel):
     scene_id: str
     product_bboxes: dict[str, BoundingBox]
     price_bboxes: dict[str, BoundingBox]
@@ -147,7 +147,7 @@ class PriceAttributionScene(BaseModel):
     model_config = {"arbitrary_types_allowed": True}
 
     @model_validator(mode="after")
-    def check_ids_are_consistent(self) -> PriceAttributionScene:
+    def check_ids_are_consistent(self) -> PriceAssociationScene:
         product_bbox_ids = set(self.product_bboxes.keys())
         price_bbox_ids = set(self.price_bboxes.keys())
         if product_bbox_ids & price_bbox_ids:

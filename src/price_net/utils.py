@@ -4,7 +4,7 @@ import torch
 from matplotlib import patches
 from matplotlib import pyplot as plt
 from price_net.schema import BoundingBox
-from price_net.schema import PriceAttributionScene
+from price_net.schema import PriceAssociationScene
 from seaborn import color_palette
 from torch.nn.utils.rnn import pad_sequence
 
@@ -63,8 +63,8 @@ def scene_level_collate_fn(
     return xs_padded, ys_padded, is_padded_mask
 
 
-def plot_price_attribution_scene(
-    scene: PriceAttributionScene, ax: plt.Axes | None = None
+def plot_price_scene(
+    scene: PriceAssociationScene, ax: plt.Axes | None = None
 ) -> tuple[plt.Axes, dict[str, Color]]:
     """Plot the given price attribution scene as a graph (where nodes are the 2d centroids and edges exist if a product/price are associated).
 

@@ -2,29 +2,27 @@ import json
 from concurrent.futures import ThreadPoolExecutor
 from itertools import chain
 from pathlib import Path
-from typing import Callable
 
 import polars as pl
 import torch
-from price_net.enums import FeaturizationMethod
-from price_net.enums import InputGranularity
-from price_net.schema import PriceAttributionScene
+from price_net.enums import InputReduction
+from price_net.enums import PredictionStrategy
+from price_net.schema import PriceAssociationScene
+from price_net.transforms import ConcatenateBoundingBoxes
+from price_net.transforms import InputTransform
 from price_net.utils import parse_bboxes
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
 
-Transform = Callable[[torch.Tensor], torch.Tensor] | None
-
-
-class PriceAttributionDataset(Dataset):
-    FEATURE_DIM = 10
+class PriceAssociationDataset(Dataset):
     INSTANCES_SCHEMA = {
         "scene_id": pl.String,
         "price_id": pl.String,
         "group_id": pl.String,
-        "x": pl.Array(pl.Float32, FEATURE_DIM),
-        "y": pl.Int8,
+        "price_bbox": pl.Array(pl.Float32, 5),
+        "product_bbox": pl.Array(pl.Float32, 5),
+        "is_associated": pl.Int8,
     }
     IMAGES_DIR = "images"
     DEPTH_MAPS_DIR = "depth-maps"
@@ -34,19 +32,18 @@ class PriceAttributionDataset(Dataset):
     def __init__(
         self,
         root_dir: str | Path,
-        input_transform: Transform = None,
-        output_transform: Transform = None,
-        input_granularity: InputGranularity = InputGranularity.PAIRWISE,
-        featurization_method: FeaturizationMethod = FeaturizationMethod.CENTROID_DIFF,
+        input_transform: InputTransform = ConcatenateBoundingBoxes(),
+        input_reduction: InputReduction = InputReduction.NONE,
+        prediction_strategy: PredictionStrategy = PredictionStrategy.MARGINAL,
     ):
-        """Initialize a `PriceAttributionDataset`.
+        """Initialize a `PriceAssociationDataset`.
 
         Args:
             root_dir (str | Path): Root directory where the dataset is stored.
             input_transform (Transform | None, optional): Transform to apply to each input of the dataset when `__getitem__` is called. Defaults to None.
             output_transform (Transform | None, optional): Transform to apply to each output of the dataset when `__getitem__` is called. Defaults to None.
-            input_granularity (InputGranularity, optional): Determines the shape of inputs returned by `__getitem__`. Defaults to InputType.PAIRWISE (each potential association treated independently).
-            featurization_method (FeaturizationMethod, optional): The method to use when building features for a potential prod-price edge. Defaults to `FeaturizationMethod.CENTROID_DIFF` (the feature vector is the centroid delta concatenated with the price bbox).
+            input_reduction (InputReduction, optional): Determines which inputs are returned by `__getitem__`. Defaults to InputReduction.NONE (each potential product-price association pair is returned).
+            prediction_strategy (PredictionStrategy, optional): Determines how inputs are grouped when returned by `__getitem__`. Defaults to PredictionStrategy.MARGINAL (each association treated independently).
         """
         self.root_dir = Path(root_dir)
         self.images_dir = self.root_dir / "images"
@@ -55,21 +52,18 @@ class PriceAttributionDataset(Dataset):
         self._check_expected_files_exist()
 
         self.input_transform = input_transform
-        self.output_transform = output_transform
-        self.input_granularity = input_granularity
-        self.featurization_method = featurization_method
+        self.input_reduction = input_reduction
+        self.prediction_strategy = prediction_strategy
         self.instances = self._get_instances()
 
     def __getitem__(self, idx: int):
         row = self.instances.row(idx, named=True)
-        x = torch.tensor(row["x"], dtype=torch.float32)
-        y = torch.tensor(row["y"], dtype=torch.float32)
 
-        if self.input_transform:
-            x = self.input_transform(x)
-        if self.output_transform:
-            y = self.output_transform(y)
+        price_bbox = torch.tensor(row["price_bbox"], dtype=torch.float32)
+        prod_bbox = torch.tensor(row["product_bbox"], dtype=torch.float32)
+        y = torch.tensor(row["is_associated"], dtype=torch.float32)
 
+        x = self.input_transform(price_bbox, prod_bbox)
         return x, y
 
     def __len__(self):
@@ -106,81 +100,76 @@ class PriceAttributionDataset(Dataset):
                 schema=self.INSTANCES_SCHEMA,
             )
             instances.write_parquet(instances_path)
-        if self.input_granularity == InputGranularity.PAIRWISE:
-            return instances
-        elif self.input_granularity == InputGranularity.SCENE_LEVEL:
-            return instances.group_by("scene_id").agg(
+        instances = self._prepare_instances(instances)
+        return instances
+
+    def _prepare_instances(self, instances: pl.DataFrame):
+        if self.input_reduction == InputReduction.CLOSEST_PER_GROUP:
+            instances = instances.with_columns(
+                pl.struct("price_bbox", "product_bbox")
+                .map_elements(
+                    lambda s: sum(
+                        (a - b) ** 2
+                        for a, b in zip(s["price_bbox"][:3], s["product_bbox"][:3])
+                    )
+                    ** 0.5,
+                    return_dtype=pl.Float32,
+                )
+                .alias("centroid_dist")
+            )
+            instances = (
+                instances.sort("centroid_dist")
+                .group_by(["scene_id", "group_id"])
+                .agg(
+                    pl.first("price_id"),
+                    pl.first("product_bbox"),
+                    pl.first("price_bbox"),
+                    pl.first("is_associated"),
+                )
+            )
+        if self.prediction_strategy == PredictionStrategy.JOINT:
+            instances = instances.group_by("scene_id").agg(
                 pl.col("price_id"),
                 pl.col("group_id"),
-                pl.col("x"),
-                pl.col("y"),
+                pl.col("price_bbox"),
+                pl.col("product_bbox"),
+                pl.col("is_associated"),
             )
-        else:
-            raise NotImplementedError(
-                f"Unsupported input type: {self.input_granularity.value}"
-            )
+        return instances
 
     def _process_scene(self, raw_scene: dict):
-        scene = PriceAttributionScene(**raw_scene)
+        scene = PriceAssociationScene(**raw_scene)
         scene_id = scene.scene_id
 
         product_bboxes, prod_ids, prod_id_to_idx = parse_bboxes(scene.product_bboxes)
         price_bboxes, price_ids, _ = parse_bboxes(scene.price_bboxes)
 
-        # For each product group, find which centroid is nearest to each price tag.
-        # Then deduce if this group goes with that price tag (0 or 1).
-        # This is one instance.
         price_id_to_assoc_products = {
             price_id: group.product_bbox_ids
             for group in scene.price_groups
             for price_id in group.price_bbox_ids
         }
         scene_instances = []
-        for product_group in scene.product_groups:
-            group_id = product_group.group_id
+        for price_idx, price_bbox in enumerate(price_bboxes):
+            price_id = price_ids[price_idx]
+            assoc_prod_ids = price_id_to_assoc_products.get(price_id, set())
 
-            group_indices = [
-                prod_id_to_idx[box_id] for box_id in product_group.product_bbox_ids
-            ]
-            group_bboxes = product_bboxes[group_indices]
-            group_centroids = group_bboxes[:, :3]
+            for product_group in scene.product_groups:
+                group_id = product_group.group_id
+                group_indices = [
+                    prod_id_to_idx[box_id] for box_id in product_group.product_bbox_ids
+                ]
+                group_bboxes = product_bboxes[group_indices]
 
-            for idx, price_bbox in enumerate(price_bboxes):
-                centroid_diffs = group_centroids - price_bbox[:3]
-                idx_of_closest_prod = centroid_diffs.norm(dim=1).argmin()
-                cluster_wh = group_bboxes[:, 3:].mean(dim=0)
-                if self.featurization_method == FeaturizationMethod.CENTROID:
-                    x = torch.cat(
-                        [
-                            group_centroids[idx_of_closest_prod],
-                            cluster_wh,
-                            price_bbox,
-                        ]
-                    )
-                elif self.featurization_method == FeaturizationMethod.CENTROID_DIFF:
-                    x = torch.cat(
-                        [
-                            centroid_diffs[idx_of_closest_prod],
-                            cluster_wh,
-                            price_bbox,
-                        ]
-                    )
-                else:
-                    raise NotImplementedError(
-                        f"Unsupported featurizing strategy: {self.featurization_method.value}"
-                    )
-
-                id_of_closest_prod = prod_ids[group_indices[idx_of_closest_prod]]
-                price_id = price_ids[idx]
-                prod_ids_assoc_with_price = price_id_to_assoc_products.get(price_id, {})
-                y = int(id_of_closest_prod in prod_ids_assoc_with_price)
-
-                instance = {
-                    "scene_id": scene_id,
-                    "price_id": price_id,
-                    "group_id": group_id,
-                    "x": x.tolist(),
-                    "y": y,
-                }
-                scene_instances.append(instance)
+                for prod_idx_in_group, prod_bbox in enumerate(group_bboxes):
+                    prod_id = prod_ids[group_indices[prod_idx_in_group]]
+                    instance = {
+                        "scene_id": scene_id,
+                        "price_id": price_id,
+                        "group_id": group_id,
+                        "price_bbox": price_bbox.tolist(),
+                        "product_bbox": prod_bbox.tolist(),
+                        "is_associated": int(prod_id in assoc_prod_ids),
+                    }
+                    scene_instances.append(instance)
         return scene_instances

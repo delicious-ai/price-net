@@ -1,13 +1,23 @@
 from enum import Enum
 
 
-class InputGranularity(Enum):
-    PAIRWISE = "pairwise"
-    SCENE_LEVEL = "scene_level"
+class InputReduction(Enum):
+    NONE = "none"
+    CLOSEST_PER_GROUP = "closest_per_group"
 
     """
-    - PAIRWISE: Each input is a single candidate product-price pair.
-    - SCENE_LEVEL: Each input is a full scene (set) of product-price candidate pairs.
+    NONE: We predict on all product-price pairs in every scene.
+    CLOSEST_PER_GROUP: We only make a prediction for one product-price pair (the closest one) for every product group.
+    """
+
+
+class PredictionStrategy(Enum):
+    MARGINAL = "marginal"
+    JOINT = "joint"
+
+    """
+    MARGINAL: We treat each prediction independently.
+    JOINT: We predict for all pairs in a scene jointly.
     """
 
 
