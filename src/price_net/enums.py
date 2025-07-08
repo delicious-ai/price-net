@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class InputReduction(Enum):
+class Aggregation(Enum):
     NONE = "none"
     CLOSEST_PER_GROUP = "closest_per_group"
 
@@ -71,3 +71,11 @@ class Accelerator(Enum):
     CPU = "cpu"
     GPU = "gpu"
     MPS = "mps"
+
+
+class HeuristicType(Enum):
+    EVERYTHING = "everything"
+    NEAREST = "nearest"
+    NEAREST_BELOW = "nearest"
+    NEAREST_PER_GROUP = "nearest_per_group"
+    NEAREST_BELOW_PER_GROUP = "nearest_below_per_group"

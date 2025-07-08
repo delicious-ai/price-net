@@ -5,8 +5,8 @@ from typing import Literal
 import lightning as L
 import torch
 from price_net.dataset import PriceAssociationDataset
+from price_net.enums import Aggregation
 from price_net.enums import FeaturizationMethod
-from price_net.enums import InputReduction
 from price_net.enums import PredictionStrategy
 from price_net.transforms import ConcatenateBoundingBoxes
 from price_net.transforms import ConcatenateWithCentroidDiff
@@ -22,7 +22,7 @@ class PriceAssociationDataModule(L.LightningDataModule):
         data_dir: Path,
         batch_size: int = 1,
         num_workers: int = 0,
-        input_reduction: InputReduction = InputReduction.NONE,
+        aggregation: Aggregation = Aggregation.NONE,
         prediction_strategy: PredictionStrategy = PredictionStrategy.MARGINAL,
         featurization_method: FeaturizationMethod = FeaturizationMethod.CENTROID,
         use_depth: bool = True,
@@ -33,7 +33,7 @@ class PriceAssociationDataModule(L.LightningDataModule):
             data_dir (Path): The directory where the dataset is stored.
             batch_size (int, optional): The batch size to use for dataloaders. Defaults to 1.
             num_workers (int, optional): The number of workers to use for dataloaders. Defaults to 0.
-            input_reduction (InputReduction, optional): Specifies how to reduce the raw set of product-price associations. Defaults to InputReduction.NONE.
+            aggregation (Aggregation, optional): Specifies how to aggregate the raw set of product-price associations. Defaults to Aggregation.NONE.
             prediction_strategy (PredictionStrategy, optional): Specifies if predictions will be made marginally (treating each association independently) or jointly (across a scene). Defaults to PredictionStrategy.MARGINAL.
             featurization_method (FeaturizationMethod, optional): Specifies how to build feature representations of a possible product-price association. Defaults to FeaturizationMethod.CENTROID (pure centroids of prod/price bboxes are used).
             use_depth (bool, optional): Whether/not to use inferred depths in feature representation. Defaults to True.
@@ -42,7 +42,7 @@ class PriceAssociationDataModule(L.LightningDataModule):
         self.data_dir = data_dir
         self.batch_size = batch_size
         self.num_workers = num_workers
-        self.input_reduction = input_reduction
+        self.aggregation = aggregation
         self.prediction_strategy = prediction_strategy
         self.featurization_method = featurization_method
         self.use_depth = use_depth
@@ -65,7 +65,7 @@ class PriceAssociationDataModule(L.LightningDataModule):
         return PriceAssociationDataset(
             root_dir=self.data_dir / split,
             input_transform=self.transform,
-            input_reduction=self.input_reduction,
+            aggregation=self.aggregation,
         )
 
     def train_dataloader(self):

@@ -3,15 +3,15 @@ from __future__ import annotations
 from pathlib import Path
 
 from price_net.enums import Accelerator
+from price_net.enums import Aggregation
 from price_net.enums import FeaturizationMethod
-from price_net.enums import InputReduction
 from price_net.enums import PredictionStrategy
 from pydantic import BaseModel
 
 
 class ModelConfig(BaseModel):
     prediction_strategy: PredictionStrategy = PredictionStrategy.MARGINAL
-    input_reduction: InputReduction = InputReduction.NONE
+    aggregation: Aggregation = Aggregation.NONE
     featurization_method: FeaturizationMethod = FeaturizationMethod.CENTROID
     use_depth: bool = True
     settings: dict = {}

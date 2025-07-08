@@ -26,7 +26,7 @@ def evaluate(config: EvaluationConfig):
 
     datamodule = PriceAssociationDataModule(
         data_dir=training_config.dataset_dir,
-        input_reduction=training_config.model.input_reduction,
+        aggregation=training_config.model.aggregation,
         prediction_strategy=training_config.model.prediction_strategy,
         featurization_method=training_config.model.featurization_method,
         use_depth=training_config.model.use_depth,

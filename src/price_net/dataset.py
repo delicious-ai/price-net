@@ -6,7 +6,7 @@ from pathlib import Path
 
 import polars as pl
 import torch
-from price_net.enums import InputReduction
+from price_net.enums import Aggregation
 from price_net.schema import PriceAssociationScene
 from price_net.transforms import ConcatenateBoundingBoxes
 from price_net.transforms import InputTransform
@@ -34,7 +34,7 @@ class PriceAssociationDataset(Dataset):
         self,
         root_dir: str | Path,
         input_transform: InputTransform = ConcatenateBoundingBoxes(),
-        input_reduction: InputReduction = InputReduction.NONE,
+        aggregation: Aggregation = Aggregation.NONE,
     ):
         """Initialize a `PriceAssociationDataset`.
 
@@ -42,7 +42,7 @@ class PriceAssociationDataset(Dataset):
             root_dir (str | Path): Root directory where the dataset is stored.
             input_transform (Transform | None, optional): Transform to apply to each input of the dataset when `__getitem__` is called. Defaults to None.
             output_transform (Transform | None, optional): Transform to apply to each output of the dataset when `__getitem__` is called. Defaults to None.
-            input_reduction (InputReduction, optional): Determines which inputs are returned by `__getitem__`. Defaults to InputReduction.NONE (each potential product-price association pair is returned).
+            aggregation (Aggregation, optional): Determines how we parse instances for `__getitem__`. Defaults to Aggregation.NONE (each potential product-price association pair is returned for a scene).
         """
         self.root_dir = Path(root_dir)
         self.images_dir = self.root_dir / "images"
@@ -51,7 +51,7 @@ class PriceAssociationDataset(Dataset):
         self._check_expected_files_exist()
 
         self.input_transform = input_transform
-        self.input_reduction = input_reduction
+        self.aggregation = aggregation
         self.instances = self._get_instances()
         self.scene_ids = []
         self.scene_id_to_indices = defaultdict(list)
@@ -107,7 +107,7 @@ class PriceAssociationDataset(Dataset):
         return instances
 
     def _prepare_instances(self, instances: pl.DataFrame):
-        if self.input_reduction == InputReduction.CLOSEST_PER_GROUP:
+        if self.aggregation == Aggregation.CLOSEST_PER_GROUP:
             instances = instances.with_columns(
                 pl.struct("price_bbox", "product_bbox")
                 .map_elements(

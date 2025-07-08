@@ -62,7 +62,7 @@ def train(config: TrainingConfig):
         data_dir=config.dataset_dir,
         batch_size=config.batch_size,
         num_workers=config.num_workers,
-        input_reduction=config.model.input_reduction,
+        aggregation=config.model.aggregation,
         prediction_strategy=config.model.prediction_strategy,
         featurization_method=config.model.featurization_method,
         use_depth=config.model.use_depth,

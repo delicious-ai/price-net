@@ -4,7 +4,9 @@ from abc import ABC
 from abc import abstractmethod
 from typing import Annotated
 from typing import Literal
+from uuid import uuid4
 
+import torch
 from price_net.enums import PriceType
 from pydantic import BaseModel
 from pydantic import computed_field
@@ -124,9 +126,12 @@ class BoundingBox(BaseModel):
     w: float = Field(ge=0.0, le=1.0)
     h: float = Field(ge=0.0, le=1.0)
 
+    def to_tensor(self) -> torch.Tensor:
+        return torch.tensor([self.cx, self.cy, self.cz, self.w, self.h])
+
 
 class PriceGroup(BaseModel):
-    group_id: str
+    group_id: str = Field(default_factory=lambda: str(uuid4()))
     product_bbox_ids: set[str]
     price_bbox_ids: set[str]
 
