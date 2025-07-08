@@ -1,18 +1,18 @@
+from functools import partial
 from pathlib import Path
 from typing import Callable
 from typing import Literal
 
 import lightning as L
 import torch
+from price_net.configs import FeaturizationConfig
 from price_net.dataset import PriceAssociationDataset
 from price_net.enums import Aggregation
-from price_net.enums import FeaturizationMethod
 from price_net.enums import PredictionStrategy
-from price_net.transforms import ConcatenateBoundingBoxes
-from price_net.transforms import ConcatenateWithCentroidDiff
 from price_net.transforms import InputTransform
 from price_net.utils import joint_prediction_collate_fn
 from price_net.utils import marginal_prediction_collate_fn
+from price_net.utils import split_bboxes
 from torch.utils.data import DataLoader
 
 
@@ -22,10 +22,9 @@ class PriceAssociationDataModule(L.LightningDataModule):
         data_dir: Path,
         batch_size: int = 1,
         num_workers: int = 0,
-        aggregation: Aggregation = Aggregation.NONE,
         prediction_strategy: PredictionStrategy = PredictionStrategy.MARGINAL,
-        featurization_method: FeaturizationMethod = FeaturizationMethod.CENTROID,
-        use_depth: bool = True,
+        aggregation: Aggregation = Aggregation.NONE,
+        featurization_config: FeaturizationConfig = FeaturizationConfig(),
     ):
         """Initialize a `PriceAssociationDataModule`.
 
@@ -33,10 +32,9 @@ class PriceAssociationDataModule(L.LightningDataModule):
             data_dir (Path): The directory where the dataset is stored.
             batch_size (int, optional): The batch size to use for dataloaders. Defaults to 1.
             num_workers (int, optional): The number of workers to use for dataloaders. Defaults to 0.
-            aggregation (Aggregation, optional): Specifies how to aggregate the raw set of product-price associations. Defaults to Aggregation.NONE.
             prediction_strategy (PredictionStrategy, optional): Specifies if predictions will be made marginally (treating each association independently) or jointly (across a scene). Defaults to PredictionStrategy.MARGINAL.
-            featurization_method (FeaturizationMethod, optional): Specifies how to build feature representations of a possible product-price association. Defaults to FeaturizationMethod.CENTROID (pure centroids of prod/price bboxes are used).
-            use_depth (bool, optional): Whether/not to use inferred depths in feature representation. Defaults to True.
+            aggregation (Aggregation, optional): Specifies how to aggregate the raw set of potential product-price associations. Defaults to Aggregation.NONE.
+            featurization_config (FeaturizationConfig, optional): Specifies how to build feature representations of possible product-price associations.
         """
         super().__init__()
         self.data_dir = data_dir
@@ -44,8 +42,7 @@ class PriceAssociationDataModule(L.LightningDataModule):
         self.num_workers = num_workers
         self.aggregation = aggregation
         self.prediction_strategy = prediction_strategy
-        self.featurization_method = featurization_method
-        self.use_depth = use_depth
+        self.featurization_config = featurization_config
         self.transform = self._get_transform()
         self.collate_fn = self._get_collate_fn()
 
@@ -66,6 +63,7 @@ class PriceAssociationDataModule(L.LightningDataModule):
             root_dir=self.data_dir / split,
             input_transform=self.transform,
             aggregation=self.aggregation,
+            use_depth=self.featurization_config.use_depth,
         )
 
     def train_dataloader(self):
@@ -99,21 +97,35 @@ class PriceAssociationDataModule(L.LightningDataModule):
         )
 
     def _get_transform(self) -> InputTransform:
-        if self.featurization_method == FeaturizationMethod.CENTROID:
-            concatenation_op = ConcatenateBoundingBoxes()
-        else:
-            concatenation_op = ConcatenateWithCentroidDiff()
-        mask = torch.ones(10, dtype=bool)
-        if not self.use_depth:
-            mask[2] = False
-            mask[7] = False
+        config = self.featurization_config
+        _split_bboxes = partial(split_bboxes, use_depth=config.use_depth)
 
-        def _transform(
-            price_bboxes: torch.Tensor, prod_bboxes: torch.Tensor
-        ) -> torch.Tensor:
-            return concatenation_op(price_bboxes, prod_bboxes)[:, mask]
+        class _Transform(InputTransform):
+            def __call__(
+                self, prod_bboxes: torch.Tensor, price_bboxes: torch.Tensor
+            ) -> torch.Tensor:
+                features = []
 
-        return _transform
+                prod_centroids, prod_wh = _split_bboxes(prod_bboxes)
+                price_centroids, price_wh = _split_bboxes(price_bboxes)
+
+                if config.use_delta:
+                    features.append(prod_centroids - price_centroids)
+                elif config.use_prod_centroid:
+                    features.append(prod_centroids)
+
+                if config.use_prod_size:
+                    features.append(prod_wh)
+
+                if config.use_price_centroid:
+                    features.append(price_centroids)
+
+                if config.use_price_size:
+                    features.append(price_wh)
+
+                return torch.cat(features, dim=1)
+
+        return _Transform
 
     def _get_collate_fn(self) -> Callable | None:
         if self.prediction_strategy == PredictionStrategy.JOINT:

@@ -192,3 +192,21 @@ def plot_bboxes(
             linestyle=linestyle,
         )
         ax.add_patch(rect)
+
+
+def split_bboxes(
+    bboxes: torch.Tensor,
+    use_depth: bool = False,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Split the provided bboxes into their centroid and size components.
+
+    Args:
+        bboxes (torch.Tensor): A (N, 5) tensor of xyzwh bounding boxes.
+        use_depth (bool, optional): Whether/not to return a centroid with a z (depth) dimension. Defaults to False.
+
+    Returns:
+        tuple[torch.Tensor, torch.Tensor]: A (N, 2 | 3) tensor of bbox centroids, and a (N, 2) tensor of bbox sizes.
+    """
+    centroids = bboxes[:, :3] if use_depth else bboxes[:, :2]
+    sizes = bboxes[:, 3:5]
+    return centroids, sizes

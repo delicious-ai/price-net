@@ -21,16 +21,6 @@ class PredictionStrategy(Enum):
     """
 
 
-class FeaturizationMethod(Enum):
-    CENTROID = "centroid"
-    CENTROID_DIFF = "centroid_diff"
-
-    """
-    CENTROID: The first 3 features of our "association vector" are the product centroid.
-    CENTROID_DIFF: The first 3 features of our "association vector" are the difference between the product and price tag centroids.
-    """
-
-
 class PriceType(str, Enum):
     # Single item price
     STANDARD = "STANDARD"

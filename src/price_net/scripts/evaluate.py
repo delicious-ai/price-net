@@ -28,8 +28,7 @@ def evaluate(config: EvaluationConfig):
         data_dir=training_config.dataset_dir,
         aggregation=training_config.model.aggregation,
         prediction_strategy=training_config.model.prediction_strategy,
-        featurization_method=training_config.model.featurization_method,
-        use_depth=training_config.model.use_depth,
+        featurization_config=training_config.model.featurization,
     )
     datamodule.setup("test")
 
@@ -48,9 +47,6 @@ def evaluate(config: EvaluationConfig):
         group_ids = dataset.instances[dataset.scene_id_to_indices[scene_id]][
             "group_id"
         ].to_list()
-
-        # Just in case we formed multiple scenes for max length purposes.
-        scene_id = str(scene_id).split("__")[0]
 
         scene = raw_scenes[scene_id]
         id_to_product_group = {group.group_id: group for group in scene.product_groups}

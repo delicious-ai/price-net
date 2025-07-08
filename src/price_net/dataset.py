@@ -28,21 +28,21 @@ class PriceAssociationDataset(Dataset):
     DEPTH_MAPS_DIR = "depth-maps"
     RAW_PRICE_SCENES_FNAME = "raw_price_scenes.json"
     INSTANCES_FNAME = "instances.parquet"
-    MAX_TOKENS_PER_SCENE = 1024
 
     def __init__(
         self,
         root_dir: str | Path,
         input_transform: InputTransform = ConcatenateBoundingBoxes(),
         aggregation: Aggregation = Aggregation.NONE,
+        use_depth: bool = True,
     ):
         """Initialize a `PriceAssociationDataset`.
 
         Args:
             root_dir (str | Path): Root directory where the dataset is stored.
-            input_transform (Transform | None, optional): Transform to apply to each input of the dataset when `__getitem__` is called. Defaults to None.
-            output_transform (Transform | None, optional): Transform to apply to each output of the dataset when `__getitem__` is called. Defaults to None.
+            input_transform (InputTransform, optional): Transform to apply to each input of the dataset when `__getitem__` is called. Defaults to `ConcatenateBoundingBoxes`.
             aggregation (Aggregation, optional): Determines how we parse instances for `__getitem__`. Defaults to Aggregation.NONE (each potential product-price association pair is returned for a scene).
+            use_depth (bool, optional): Whether/not to use depth if aggregating by "closest_per_group".
         """
         self.root_dir = Path(root_dir)
         self.images_dir = self.root_dir / "images"
@@ -52,6 +52,7 @@ class PriceAssociationDataset(Dataset):
 
         self.input_transform = input_transform
         self.aggregation = aggregation
+        self.use_depth = use_depth
         self.instances = self._get_instances()
         self.scene_ids = []
         self.scene_id_to_indices = defaultdict(list)
@@ -63,10 +64,10 @@ class PriceAssociationDataset(Dataset):
     def __getitem__(self, idx: int):
         scene_id = self.scene_ids[idx]
         rows = self.instances[self.scene_id_to_indices[scene_id]]
-        price_bboxes = torch.tensor(rows["price_bbox"], dtype=torch.float32)
         prod_bboxes = torch.tensor(rows["product_bbox"], dtype=torch.float32)
+        price_bboxes = torch.tensor(rows["price_bbox"], dtype=torch.float32)
         y = torch.tensor(rows["is_associated"], dtype=torch.float32)
-        x = self.input_transform(price_bboxes, prod_bboxes)
+        x = self.input_transform(prod_bboxes, price_bboxes)
         return x, y, scene_id
 
     def __len__(self):
@@ -108,12 +109,16 @@ class PriceAssociationDataset(Dataset):
 
     def _prepare_instances(self, instances: pl.DataFrame):
         if self.aggregation == Aggregation.CLOSEST_PER_GROUP:
+            centroid_end_dim = 3 if self.use_depth else 2
             instances = instances.with_columns(
                 pl.struct("price_bbox", "product_bbox")
                 .map_elements(
                     lambda s: sum(
                         (a - b) ** 2
-                        for a, b in zip(s["price_bbox"][:3], s["product_bbox"][:3])
+                        for a, b in zip(
+                            s["price_bbox"][:centroid_end_dim],
+                            s["product_bbox"][:centroid_end_dim],
+                        )
                     )
                     ** 0.5,
                     return_dtype=pl.Float32,
@@ -129,32 +134,6 @@ class PriceAssociationDataset(Dataset):
                     pl.first("is_associated"),
                 )
             )
-
-        # Since we return a whole scene as one instance of our dataset, we need
-        # to control for scenes with an infeasible number of potential associations.
-        # We do this by splitting scenes into random sub-chunks if we exceed the max
-        # number of tokens (very rare).
-        new_rows = []
-        for scene_id_1d_tuple, group in instances.group_by("scene_id"):
-            scene_id = scene_id_1d_tuple[0]
-            num_rows = group.height
-            if num_rows <= self.MAX_TOKENS_PER_SCENE:
-                new_rows.append(group)
-            else:
-                chunk_size = self.MAX_TOKENS_PER_SCENE // 2
-                group = group.sample(
-                    fraction=1.0, with_replacement=False, seed=1998
-                ).with_columns(
-                    (pl.arange(0, group.height) // chunk_size).alias("chunk_id")
-                )
-                chunked = group.partition_by("chunk_id")
-                for i, chunk in enumerate(chunked):
-                    chunk = chunk.with_columns(
-                        pl.lit(f"{scene_id}__{i}").alias("scene_id")
-                    ).drop(pl.col("chunk_id"))
-                    new_rows.append(chunk)
-            instances = pl.concat(new_rows)
-
         instances = instances.sort("scene_id")
         return instances
 

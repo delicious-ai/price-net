@@ -62,10 +62,9 @@ def train(config: TrainingConfig):
         data_dir=config.dataset_dir,
         batch_size=config.batch_size,
         num_workers=config.num_workers,
-        aggregation=config.model.aggregation,
         prediction_strategy=config.model.prediction_strategy,
-        featurization_method=config.model.featurization_method,
-        use_depth=config.model.use_depth,
+        aggregation=config.model.aggregation,
+        featurization_config=config.model.featurization,
     )
     trainer.fit(model, datamodule=datamodule)
 

@@ -4,16 +4,23 @@ from pathlib import Path
 
 from price_net.enums import Accelerator
 from price_net.enums import Aggregation
-from price_net.enums import FeaturizationMethod
 from price_net.enums import PredictionStrategy
 from pydantic import BaseModel
+
+
+class FeaturizationConfig(BaseModel):
+    use_delta: bool = True
+    use_prod_centroid: bool = True
+    use_price_centroid: bool = True
+    use_depth: bool = True
+    use_prod_size: bool = True
+    use_price_size: bool = True
 
 
 class ModelConfig(BaseModel):
     prediction_strategy: PredictionStrategy = PredictionStrategy.MARGINAL
     aggregation: Aggregation = Aggregation.NONE
-    featurization_method: FeaturizationMethod = FeaturizationMethod.CENTROID
-    use_depth: bool = True
+    featurization: FeaturizationConfig = FeaturizationConfig()
     settings: dict = {}
 
 
