@@ -11,7 +11,8 @@ from price_net.enums import PredictionStrategy
 from price_net.transforms import ConcatenateBoundingBoxes
 from price_net.transforms import ConcatenateWithCentroidDiff
 from price_net.transforms import InputTransform
-from price_net.utils import scene_level_collate_fn
+from price_net.utils import joint_prediction_collate_fn
+from price_net.utils import marginal_prediction_collate_fn
 from torch.utils.data import DataLoader
 
 
@@ -65,7 +66,6 @@ class PriceAssociationDataModule(L.LightningDataModule):
             root_dir=self.data_dir / split,
             input_transform=self.transform,
             input_reduction=self.input_reduction,
-            prediction_strategy=self.prediction_strategy,
         )
 
     def train_dataloader(self):
@@ -108,18 +108,15 @@ class PriceAssociationDataModule(L.LightningDataModule):
             mask[2] = False
             mask[7] = False
 
-        def transform(
-            price_bbox: torch.Tensor, prod_bbox: torch.Tensor
+        def _transform(
+            price_bboxes: torch.Tensor, prod_bboxes: torch.Tensor
         ) -> torch.Tensor:
-            if price_bbox.ndim == 2:
-                return concatenation_op(price_bbox, prod_bbox)[:, mask]
-            else:
-                return concatenation_op(price_bbox, prod_bbox)[mask]
+            return concatenation_op(price_bboxes, prod_bboxes)[:, mask]
 
-        return transform
+        return _transform
 
     def _get_collate_fn(self) -> Callable | None:
         if self.prediction_strategy == PredictionStrategy.JOINT:
-            return scene_level_collate_fn
+            return joint_prediction_collate_fn
         else:
-            return None
+            return marginal_prediction_collate_fn

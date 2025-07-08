@@ -1,4 +1,5 @@
 import json
+from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from itertools import chain
 from pathlib import Path
@@ -6,7 +7,6 @@ from pathlib import Path
 import polars as pl
 import torch
 from price_net.enums import InputReduction
-from price_net.enums import PredictionStrategy
 from price_net.schema import PriceAssociationScene
 from price_net.transforms import ConcatenateBoundingBoxes
 from price_net.transforms import InputTransform
@@ -35,7 +35,6 @@ class PriceAssociationDataset(Dataset):
         root_dir: str | Path,
         input_transform: InputTransform = ConcatenateBoundingBoxes(),
         input_reduction: InputReduction = InputReduction.NONE,
-        prediction_strategy: PredictionStrategy = PredictionStrategy.MARGINAL,
     ):
         """Initialize a `PriceAssociationDataset`.
 
@@ -44,7 +43,6 @@ class PriceAssociationDataset(Dataset):
             input_transform (Transform | None, optional): Transform to apply to each input of the dataset when `__getitem__` is called. Defaults to None.
             output_transform (Transform | None, optional): Transform to apply to each output of the dataset when `__getitem__` is called. Defaults to None.
             input_reduction (InputReduction, optional): Determines which inputs are returned by `__getitem__`. Defaults to InputReduction.NONE (each potential product-price association pair is returned).
-            prediction_strategy (PredictionStrategy, optional): Determines how inputs are grouped when returned by `__getitem__`. Defaults to PredictionStrategy.MARGINAL (each association treated independently).
         """
         self.root_dir = Path(root_dir)
         self.images_dir = self.root_dir / "images"
@@ -54,22 +52,25 @@ class PriceAssociationDataset(Dataset):
 
         self.input_transform = input_transform
         self.input_reduction = input_reduction
-        self.prediction_strategy = prediction_strategy
         self.instances = self._get_instances()
+        self.scene_ids = []
+        self.scene_id_to_indices = defaultdict(list)
+        for i, scene_id in enumerate(self.instances["scene_id"]):
+            if scene_id not in self.scene_id_to_indices:
+                self.scene_ids.append(scene_id)
+            self.scene_id_to_indices[scene_id].append(i)
 
     def __getitem__(self, idx: int):
-        row = self.instances.row(idx, named=True)
-
-        price_bbox = torch.tensor(row["price_bbox"], dtype=torch.float32)
-        prod_bbox = torch.tensor(row["product_bbox"], dtype=torch.float32)
-        y = torch.tensor(row["is_associated"], dtype=torch.float32)
-
-        x = self.input_transform(price_bbox, prod_bbox)
-        scene_id = row["scene_id"]
+        scene_id = self.scene_ids[idx]
+        rows = self.instances[self.scene_id_to_indices[scene_id]]
+        price_bboxes = torch.tensor(rows["price_bbox"], dtype=torch.float32)
+        prod_bboxes = torch.tensor(rows["product_bbox"], dtype=torch.float32)
+        y = torch.tensor(rows["is_associated"], dtype=torch.float32)
+        x = self.input_transform(price_bboxes, prod_bboxes)
         return x, y, scene_id
 
     def __len__(self):
-        return len(self.instances)
+        return len(self.scene_ids)
 
     def _check_expected_files_exist(self):
         if not self.price_scenes_file.exists():
@@ -106,7 +107,6 @@ class PriceAssociationDataset(Dataset):
         return instances
 
     def _prepare_instances(self, instances: pl.DataFrame):
-        print("Preprocessing...")
         if self.input_reduction == InputReduction.CLOSEST_PER_GROUP:
             instances = instances.with_columns(
                 pl.struct("price_bbox", "product_bbox")
@@ -121,46 +121,41 @@ class PriceAssociationDataset(Dataset):
                 .alias("centroid_dist")
             )
             instances = (
-                instances.sort("scene_id", "price_id", "group_id", "centroid_dist")
-                .group_by(["scene_id", "price_id", "group_id"], maintain_order=True)
+                instances.sort("centroid_dist")
+                .group_by(["scene_id", "price_id", "group_id"])
                 .agg(
                     pl.first("product_bbox"),
                     pl.first("price_bbox"),
                     pl.first("is_associated"),
                 )
             )
-        if self.prediction_strategy == PredictionStrategy.JOINT:
-            # Split scenes into random sub-chunks if we exceed max # tokens (very rare).
-            new_rows = []
-            for scene_id_1d_tuple, group in instances.group_by(
-                "scene_id", maintain_order=True
-            ):
-                scene_id = scene_id_1d_tuple[0]
-                num_rows = group.height
-                if num_rows <= self.MAX_TOKENS_PER_SCENE:
-                    new_rows.append(group)
-                else:
-                    chunk_size = self.MAX_TOKENS_PER_SCENE // 2
-                    group = group.sample(
-                        fraction=1.0, with_replacement=False, seed=1998
-                    ).with_columns(
-                        (pl.arange(0, group.height) // chunk_size).alias("chunk_id")
-                    )
-                    chunked = group.partition_by("chunk_id", maintain_order=True)
-                    for i, chunk in enumerate(chunked):
-                        chunk = chunk.with_columns(
-                            pl.lit(f"{scene_id}__{i}").alias("scene_id")
-                        ).drop(pl.col("chunk_id"))
-                        new_rows.append(chunk)
-                instances = pl.concat(new_rows)
 
-            instances = instances.group_by("scene_id", maintain_order=True).agg(
-                pl.col("price_id"),
-                pl.col("group_id"),
-                pl.col("price_bbox"),
-                pl.col("product_bbox"),
-                pl.col("is_associated"),
-            )
+        # Since we return a whole scene as one instance of our dataset, we need
+        # to control for scenes with an infeasible number of potential associations.
+        # We do this by splitting scenes into random sub-chunks if we exceed the max
+        # number of tokens (very rare).
+        new_rows = []
+        for scene_id_1d_tuple, group in instances.group_by("scene_id"):
+            scene_id = scene_id_1d_tuple[0]
+            num_rows = group.height
+            if num_rows <= self.MAX_TOKENS_PER_SCENE:
+                new_rows.append(group)
+            else:
+                chunk_size = self.MAX_TOKENS_PER_SCENE // 2
+                group = group.sample(
+                    fraction=1.0, with_replacement=False, seed=1998
+                ).with_columns(
+                    (pl.arange(0, group.height) // chunk_size).alias("chunk_id")
+                )
+                chunked = group.partition_by("chunk_id")
+                for i, chunk in enumerate(chunked):
+                    chunk = chunk.with_columns(
+                        pl.lit(f"{scene_id}__{i}").alias("scene_id")
+                    ).drop(pl.col("chunk_id"))
+                    new_rows.append(chunk)
+            instances = pl.concat(new_rows)
+
+        instances = instances.sort("scene_id")
         return instances
 
     def _process_scene(self, raw_scene: dict):

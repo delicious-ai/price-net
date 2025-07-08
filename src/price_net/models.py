@@ -166,16 +166,13 @@ class PriceAssociatorLightningModule(L.LightningModule):
             reduction="none",
         )
 
-        # Setup training metrics.
+        # Setup metrics.
         self.trn_precision = BinaryPrecision()
         self.trn_recall = BinaryRecall()
         self.trn_f1 = BinaryF1Score()
         self.val_precision = BinaryPrecision()
         self.val_recall = BinaryRecall()
         self.val_f1 = BinaryF1Score()
-        self.test_precision = BinaryPrecision()
-        self.test_recall = BinaryRecall()
-        self.test_f1 = BinaryF1Score()
 
         self.save_hyperparameters()
 
@@ -193,19 +190,16 @@ class PriceAssociatorLightningModule(L.LightningModule):
     def validation_step(self, batch, batch_idx):
         return self._step(batch, step_type="val")
 
-    def test_step(self, batch, batch_idx):
-        return self._step(batch, step_type="test")
-
     def _step(
         self,
         batch: tuple[torch.Tensor, torch.Tensor, torch.Tensor],
-        step_type: Literal["train", "val", "test"],
+        step_type: Literal["train", "val"],
     ) -> torch.Tensor:
         """Handle all the necessary logic for a single training / validation / testing forward pass.
 
         Args:
             batch (tuple[torch.Tensor, torch.Tensor, torch.Tensor]): A batch of data.
-            step_type (Literal["train", "val", "test"]: Specifies which type of step we are taking.
+            step_type (Literal["train", "val"]: Specifies which type of step we are taking.
 
         Returns:
             torch.Tensor: The loss accumulated during the forward pass.
@@ -218,16 +212,13 @@ class PriceAssociatorLightningModule(L.LightningModule):
             precision = self.val_precision
             recall = self.val_recall
             f1 = self.val_f1
-        elif step_type == "test":
-            precision = self.test_precision
-            recall = self.test_recall
-            f1 = self.test_f1
         else:
             raise NotImplementedError(
                 "Unsupported step_type passed to PriceAttributor._step"
             )
         if self.strategy == PredictionStrategy.MARGINAL:
             X, y, _ = batch
+            num_associations = len(y)
             logits = self.forward(X).flatten()
             loss = self.objective(logits, y).mean()
             probs = logits.sigmoid()
@@ -239,7 +230,8 @@ class PriceAssociatorLightningModule(L.LightningModule):
             logits = self.forward(X, padded_mask)
             loss_per_token = self.objective(logits, y)
             active_mask = ~padded_mask
-            loss = (loss_per_token * active_mask).sum() / active_mask.sum()
+            num_associations = active_mask.sum().item()
+            loss = (loss_per_token * active_mask).sum() / num_associations
             probs = logits.sigmoid()
             precision.update(probs[active_mask], y[active_mask])
             recall.update(probs[active_mask], y[active_mask])
@@ -250,7 +242,7 @@ class PriceAssociatorLightningModule(L.LightningModule):
             on_epoch=True,
             on_step=False,
             prog_bar=True,
-            batch_size=X.shape[0],
+            batch_size=num_associations,
         )
         return loss
 

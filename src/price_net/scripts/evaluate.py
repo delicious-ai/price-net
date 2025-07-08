@@ -8,6 +8,7 @@ import yaml
 from price_net.configs import EvaluationConfig
 from price_net.configs import TrainingConfig
 from price_net.datamodule import PriceAssociationDataModule
+from price_net.enums import PredictionStrategy
 from price_net.models import PriceAssociatorLightningModule
 from price_net.schema import PriceAssociationScene
 from sklearn.metrics import average_precision_score
@@ -33,7 +34,6 @@ def evaluate(config: EvaluationConfig):
     datamodule.setup("test")
 
     dataset = datamodule.test
-    instances_df = dataset.instances
     with open(dataset.root_dir / dataset.RAW_PRICE_SCENES_FNAME, "r") as f:
         raw_scenes = [PriceAssociationScene(**scene) for scene in json.load(f)]
         raw_scenes = {scene.scene_id: scene for scene in raw_scenes}
@@ -42,22 +42,27 @@ def evaluate(config: EvaluationConfig):
     y_score = []
     sample_weights = []
     for i in tqdm(range(len(dataset))):
-        X, y = dataset[i]
+        X, y, scene_id = dataset[i]
+        if training_config.model.prediction_strategy == PredictionStrategy.JOINT:
+            X = X.unsqueeze(0)
+        group_ids = dataset.instances[dataset.scene_id_to_indices[scene_id]][
+            "group_id"
+        ].to_list()
 
-        scene_id = str(instances_df[i]["scene_id"][0]).split("__")[0]
+        # Just in case we formed multiple scenes for max length purposes.
+        scene_id = str(scene_id).split("__")[0]
+
         scene = raw_scenes[scene_id]
         id_to_product_group = {group.group_id: group for group in scene.product_groups}
-        group_ids = dataset.instances[i]["group_id"].to_list()
+
         pred_probs = model.forward(X.unsqueeze(0)).sigmoid().flatten()
 
         for j in range(len(X)):
-            actually_associated = bool(y[j])
-            assoc_prob = pred_probs[j]
+            y_true.append(y[j])
+            y_score.append(pred_probs[j])
+
             group_id = group_ids[j]
             num_in_group = len(id_to_product_group[group_id].product_bbox_ids)
-
-            y_true.append(actually_associated)
-            y_score.append(assoc_prob)
             sample_weights.append(num_in_group)
 
     results = {}

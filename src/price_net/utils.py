@@ -38,13 +38,31 @@ def parse_bboxes(
     return bbox_tensor, ids, id_to_idx
 
 
-def scene_level_collate_fn(
-    batch: list[tuple[torch.Tensor, torch.Tensor]],
+def marginal_prediction_collate_fn(
+    batch: list[tuple[torch.Tensor, torch.Tensor, str]],
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Organize a batch of potential prod-price associations (grouped by scene ID) into concatenated tensors.
+
+    The batch is assumed to be a list of B tuples, where each tuple contains a variable number of potential product-price associations in a scene, an indicator
+    of whether/not they are actual edges, and the scene ID.
+
+    Args:
+        batch (list[tuple[torch.Tensor, torch.Tensor, str]]): A list of B tuples, each with an (N_i, D) tensor of associations and an (N_i,) label.
+
+    Returns:
+        tuple[torch.Tensor, torch.Tensor, torch.Tensor]: A (Σ N_i, D) input tensor, with corresponding (Σ N_i,) labels.
+    """
+    Xs, ys, _ = zip(*batch)
+    return torch.cat(Xs, dim=0), torch.cat(ys, dim=0)
+
+
+def joint_prediction_collate_fn(
+    batch: list[tuple[torch.Tensor, torch.Tensor, str]],
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """Organize a (potentially jagged) batch of scene-grouped prod-price edges into a zero-padded tensor with uniform sequence length.
 
-    The batch is assumed to be a list of B tuples, where each tuple contains the potential product-price edges in a scene and an indicator
-    of whether/not they are actual edges.
+    The batch is assumed to be a list of B tuples, where each tuple contains the potential product-price associations in a scene, an indicator
+    of whether/not they are actual edges, and the scene ID.
 
     Args:
         batch (list[tuple[torch.Tensor, torch.Tensor]]): A list of B tuples, each with an (N_i, D) input sequence and an (N_i,) label.
