@@ -52,7 +52,7 @@ def scene_level_collate_fn(
     Returns:
         tuple[torch.Tensor, torch.Tensor, torch.Tensor]: A zero-padded (B, N, D) input sequence tensor, with corresponding (B, N) labels and a (B, N) mask indicating if a specific token / label is zero-padded.
     """
-    xs, ys = zip(*batch)
+    xs, ys, _ = zip(*batch)
     lengths = [x.shape[0] for x in xs]
     xs_padded = pad_sequence(xs, batch_first=True)
     ys_padded = pad_sequence(ys, batch_first=True)

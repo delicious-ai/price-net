@@ -65,7 +65,8 @@ class PriceAssociationDataset(Dataset):
         y = torch.tensor(row["is_associated"], dtype=torch.float32)
 
         x = self.input_transform(price_bbox, prod_bbox)
-        return x, y
+        scene_id = row["scene_id"]
+        return x, y, scene_id
 
     def __len__(self):
         return len(self.instances)
@@ -105,6 +106,7 @@ class PriceAssociationDataset(Dataset):
         return instances
 
     def _prepare_instances(self, instances: pl.DataFrame):
+        print("Preprocessing...")
         if self.input_reduction == InputReduction.CLOSEST_PER_GROUP:
             instances = instances.with_columns(
                 pl.struct("price_bbox", "product_bbox")
@@ -130,17 +132,19 @@ class PriceAssociationDataset(Dataset):
         if self.prediction_strategy == PredictionStrategy.JOINT:
             # Split scenes into random sub-chunks if we exceed max # tokens (very rare).
             new_rows = []
-            for scene_id, group in instances.group_by("scene_id", maintain_order=True):
+            for scene_id_1d_tuple, group in instances.group_by(
+                "scene_id", maintain_order=True
+            ):
+                scene_id = scene_id_1d_tuple[0]
                 num_rows = group.height
                 if num_rows <= self.MAX_TOKENS_PER_SCENE:
                     new_rows.append(group)
                 else:
+                    chunk_size = self.MAX_TOKENS_PER_SCENE // 2
                     group = group.sample(
                         fraction=1.0, with_replacement=False, seed=1998
                     ).with_columns(
-                        (pl.arange(0, group.height) // self.MAX_TOKENS_PER_SCENE).alias(
-                            "chunk_id"
-                        )
+                        (pl.arange(0, group.height) // chunk_size).alias("chunk_id")
                     )
                     chunked = group.partition_by("chunk_id", maintain_order=True)
                     for i, chunk in enumerate(chunked):

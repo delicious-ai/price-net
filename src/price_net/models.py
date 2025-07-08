@@ -36,7 +36,6 @@ class MarginalPriceAssociator(nn.Module):
         for i, width in enumerate(layer_widths):
             self.mlp.append(nn.LazyLinear(out_features=width))
             if i < len(layer_widths) - 1:
-                self.mlp.append(nn.BatchNorm1d(width))
                 self.mlp.append(nn.ReLU())
                 self.mlp.append(nn.Dropout(dropout))
             else:
@@ -101,7 +100,6 @@ class JointPriceAssociator(nn.Module):
         for i, width in enumerate(mlp_layer_widths):
             self.mlp.append(nn.LazyLinear(out_features=width))
             if i < len(mlp_layer_widths) - 1:
-                self.mlp.append(nn.BatchNorm1d(width))
                 self.mlp.append(nn.ReLU())
                 self.mlp.append(nn.Dropout(dropout))
             else:
@@ -229,8 +227,8 @@ class PriceAssociatorLightningModule(L.LightningModule):
                 "Unsupported step_type passed to PriceAttributor._step"
             )
         if self.strategy == PredictionStrategy.MARGINAL:
-            X, y = batch
-            logits = self.forward(X)
+            X, y, _ = batch
+            logits = self.forward(X).flatten()
             loss = self.objective(logits, y).mean()
             probs = logits.sigmoid()
             precision.update(probs, y)

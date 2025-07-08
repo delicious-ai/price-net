@@ -36,3 +36,9 @@ class TrainingConfig(BaseModel):
     accelerator: Accelerator = Accelerator.CPU
     lr: float = 3e-4
     weight_decay: float = 1e-5
+
+
+class EvaluationConfig(BaseModel):
+    trn_config_path: Path
+    ckpt_path: Path
+    results_dir: Path

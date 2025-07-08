@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Callable
+from typing import Literal
 
 import lightning as L
 import torch
@@ -47,21 +48,21 @@ class PriceAssociationDataModule(L.LightningDataModule):
         self.transform = self._get_transform()
         self.collate_fn = self._get_collate_fn()
 
-    def setup(self, stage: str):
-        self.train = PriceAssociationDataset(
-            root_dir=self.data_dir / "train",
-            input_transform=self.transform,
-            input_reduction=self.input_reduction,
-            prediction_strategy=self.prediction_strategy,
-        )
-        self.val = PriceAssociationDataset(
-            root_dir=self.data_dir / "val",
-            input_transform=self.transform,
-            input_reduction=self.input_reduction,
-            prediction_strategy=self.prediction_strategy,
-        )
-        self.test = PriceAssociationDataset(
-            root_dir=self.data_dir / "test",
+    def setup(self, stage: Literal["fit", "validate", "test", "predict"]):
+        if stage == "fit":
+            self.train = self._init_dataset_split("train")
+            self.val = self._init_dataset_split("val")
+            self.test = self._init_dataset_split("test")
+        elif stage == "validate":
+            self.val = self._init_dataset_split("val")
+        else:
+            self.test = self._init_dataset_split("test")
+
+    def _init_dataset_split(
+        self, split: Literal["train", "val", "test"]
+    ) -> PriceAssociationDataset:
+        return PriceAssociationDataset(
+            root_dir=self.data_dir / split,
             input_transform=self.transform,
             input_reduction=self.input_reduction,
             prediction_strategy=self.prediction_strategy,
