@@ -18,6 +18,32 @@ pre-commit install
 
 When you commit new code, the pre-commit hook will run a series of scripts to standardize formatting and run code quality checks. Any issues must be resolved for the commit to go through. If you need to bypass the linters for a specific commit, add the `--no-verify` flag to your git commit command.
 
+## Viewing a Dataset
+
+To view a dataset, simply use the [Data Viewer](notebooks/data_viewer.ipynb). This file is a Jupyter notebook that provides an interactive interface for visualizing individual price scenes.
+
+## Training a Model
+
+To train a model, first fill out a `TrainingConfig` (following the [specified schema](src/price_net/configs.py)). Then, run the [training script](src/price_net/scripts/train.py):
+
+```bash
+uv run train --config path/to/your/config.yaml
+```
+
+The training script will save trained weights (both the best in terms of validation loss and the most recent copy) to the checkpoint directory specified in the config, and metrics will be logged in Weights and Biases (if indicated in the config) or locally (to the log directory specified in the config). The train config will also be saved in this log directory.
+
+## Evaluating a Model
+
+To evaluate a model, first fill out an `EvaluationConfig` (see the [specifications](src/price_net/configs.py) for details). Then, run the [evaluation script](src/price_net/scripts/evaluate.py) via:
+
+```bash
+uv run evaluate --config path/to/your/eval/config.yaml
+```
+
+This script will follow the logging settings specified in the config (WandB vs. local). It will also save evaluation metrics to a YAML file in the specified results directory.
+
+To get a qualitative sense of how well a model performs for price attribution, use the [Predictions Viewer](notebooks/predictions_viewer.ipynb). This file is a Jupyter notebook that provides an interactive interface for visualizing individual predicted price associations (and comparing them to the ground truth).
+
 ## Development
 
 ### Managing Dependencies

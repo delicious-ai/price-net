@@ -13,6 +13,7 @@ dependencies = [
     "ipywidgets>=8.1.7",
     "lightning>=2.5.2",
     "matplotlib>=3.10.3",
+    "notebook>=7.4.4",
     "numpy>=2.2.6",
     "opencv-python>=4.11.0.86",
     "polars>=1.31.0",
