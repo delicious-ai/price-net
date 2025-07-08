@@ -217,7 +217,7 @@ class PriceAssociatorLightningModule(L.LightningModule):
                 "Unsupported step_type passed to PriceAttributor._step"
             )
         if self.strategy == PredictionStrategy.MARGINAL:
-            X, y, _ = batch
+            X, y = batch
             num_associations = len(y)
             logits = self.forward(X).flatten()
             loss = self.objective(logits, y).mean()

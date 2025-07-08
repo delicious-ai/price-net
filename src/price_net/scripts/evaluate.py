@@ -36,7 +36,7 @@ def evaluate(config: EvaluationConfig):
     dataset = datamodule.test
     with open(dataset.root_dir / dataset.RAW_PRICE_SCENES_FNAME, "r") as f:
         raw_scenes = [PriceAssociationScene(**scene) for scene in json.load(f)]
-        raw_scenes = {scene.scene_id: scene for scene in raw_scenes}
+    raw_scenes = {scene.scene_id: scene for scene in raw_scenes}
 
     y_true = []
     y_score = []
@@ -95,6 +95,7 @@ def evaluate(config: EvaluationConfig):
         y_score=y_score,
         sample_weight=sample_weights,
     )
+    config.results_dir.mkdir(parents=True, exist_ok=True)
     with open(config.results_dir / "eval_metrics.yaml", "w") as f:
         yaml.safe_dump(results, f)
 
