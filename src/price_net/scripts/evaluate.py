@@ -55,7 +55,7 @@ def evaluate(config: EvaluationConfig):
         scene = raw_scenes[scene_id]
         id_to_product_group = {group.group_id: group for group in scene.product_groups}
 
-        pred_probs = model.forward(X.unsqueeze(0)).sigmoid().flatten()
+        pred_probs = model.forward(X).sigmoid().flatten()
 
         for j in range(len(X)):
             y_true.append(y[j])
