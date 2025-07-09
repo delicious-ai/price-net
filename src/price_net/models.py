@@ -6,6 +6,7 @@ import lightning as L
 import torch
 from price_net.configs import ModelConfig
 from price_net.enums import PredictionStrategy
+from price_net.losses import sigmoid_focal_loss_star
 from torch import nn
 from torch.nn import TransformerEncoder
 from torch.nn import TransformerEncoderLayer
@@ -14,7 +15,6 @@ from torch.optim.lr_scheduler import CosineAnnealingLR
 from torchmetrics.classification import BinaryF1Score
 from torchmetrics.classification import BinaryPrecision
 from torchmetrics.classification import BinaryRecall
-from torchvision.ops import sigmoid_focal_loss
 
 
 class MarginalPriceAssociator(nn.Module):
@@ -161,7 +161,7 @@ class PriceAssociatorLightningModule(L.LightningModule):
         self.weight_decay = weight_decay
         self.gamma = gamma
         self.objective = partial(
-            sigmoid_focal_loss,
+            sigmoid_focal_loss_star,
             alpha=-1,
             gamma=self.gamma,
             reduction="none",

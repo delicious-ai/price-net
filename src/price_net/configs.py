@@ -40,7 +40,7 @@ class TrainingConfig(BaseModel):
     num_epochs: int = 1
     batch_size: int = 1
     num_workers: int = 0
-    gamma: float = 0.0
+    gamma: float = 1.0
     accelerator: Accelerator = Accelerator.CPU
     lr: float = 3e-4
     weight_decay: float = 1e-5
