@@ -139,6 +139,7 @@ class PriceAssociatorLightningModule(L.LightningModule):
     """A Lightning wrapper around a `{ Marginal | Joint }PriceAssociator`."""
 
     objective: Callable[[torch.Tensor, torch.Tensor], torch.Tensor]
+    MAX_LOGIT_MAGNITUDE = 10
 
     def __init__(
         self,
@@ -219,7 +220,11 @@ class PriceAssociatorLightningModule(L.LightningModule):
         if self.strategy == PredictionStrategy.MARGINAL:
             X, y = batch
             num_associations = len(y)
-            logits = self.forward(X).flatten()
+            logits = (
+                self.forward(X)
+                .flatten()
+                .clamp(-self.MAX_LOGIT_MAGNITUDE, self.MAX_LOGIT_MAGNITUDE)
+            )
             loss = self.objective(logits, y).mean()
             probs = logits.sigmoid()
             precision.update(probs, y)
@@ -227,7 +232,9 @@ class PriceAssociatorLightningModule(L.LightningModule):
             f1.update(probs, y)
         else:
             X, y, padded_mask = batch
-            logits = self.forward(X, padded_mask)
+            logits = self.forward(X, padded_mask).clamp(
+                -self.MAX_LOGIT_MAGNITUDE, self.MAX_LOGIT_MAGNITUDE
+            )
             loss_per_token = self.objective(logits, y)
             active_mask = ~padded_mask
             num_associations = active_mask.sum().item()

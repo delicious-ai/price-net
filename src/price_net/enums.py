@@ -73,7 +73,6 @@ class HeuristicType(Enum):
 
 
 class Precision(Enum):
-    BF16 = "bf16"
-    HALF = "16"
+    BF16_MIXED = "bf16-mixed"
+    HALF_MIXED = "16-mixed"
     FULL = "32"
-    DOUBLE = "64"
