@@ -51,7 +51,8 @@ def evaluate(config: EvaluationConfig):
         scene = raw_scenes[scene_id]
         id_to_product_group = {group.group_id: group for group in scene.product_groups}
 
-        pred_probs = model.forward(X).sigmoid().flatten()
+        pred_logits: torch.Tensor = model(X)
+        pred_probs = pred_logits.sigmoid().flatten()
 
         for j in range(len(X)):
             y_true.append(y[j])
@@ -61,10 +62,12 @@ def evaluate(config: EvaluationConfig):
             num_in_group = len(id_to_product_group[group_id].product_bbox_ids)
             sample_weights.append(num_in_group)
 
+    y_true = np.array(y_true)
+    y_score = np.array(y_score)
     results = {}
     thresholds = np.linspace(0.1, 0.9, num=9)
     for t in thresholds:
-        y_pred = np.array(y_score) > t
+        y_pred = y_score > t
         precision, recall, f1, _ = precision_recall_fscore_support(
             y_true=y_true,
             y_pred=y_pred,
