@@ -139,7 +139,6 @@ class PriceAssociatorLightningModule(L.LightningModule):
     """A Lightning wrapper around a `{ Marginal | Joint }PriceAssociator`."""
 
     objective: Callable[[torch.Tensor, torch.Tensor], torch.Tensor]
-    MAX_LOGIT_MAGNITUDE = 10
 
     def __init__(
         self,
@@ -148,6 +147,7 @@ class PriceAssociatorLightningModule(L.LightningModule):
         lr: float = 3e-4,
         weight_decay: float = 1e-5,
         gamma: float = 0.0,
+        max_logit_magnitude: float | None = None,
     ):
         super().__init__()
 
@@ -166,6 +166,7 @@ class PriceAssociatorLightningModule(L.LightningModule):
             gamma=self.gamma,
             reduction="none",
         )
+        self.max_logit_magnitude = max_logit_magnitude
 
         # Setup metrics.
         self.trn_precision = BinaryPrecision()
@@ -220,11 +221,11 @@ class PriceAssociatorLightningModule(L.LightningModule):
         if self.strategy == PredictionStrategy.MARGINAL:
             X, y = batch
             num_associations = len(y)
-            logits = (
-                self.forward(X)
-                .flatten()
-                .clamp(-self.MAX_LOGIT_MAGNITUDE, self.MAX_LOGIT_MAGNITUDE)
-            )
+            logits = self.forward(X).flatten()
+            if self.max_logit_magnitude is not None:
+                logits = logits.clamp(
+                    -self.max_logit_magnitude, self.max_logit_magnitude
+                )
             loss = self.objective(logits, y).mean()
             probs = logits.sigmoid()
             precision.update(probs, y)
@@ -232,9 +233,11 @@ class PriceAssociatorLightningModule(L.LightningModule):
             f1.update(probs, y)
         else:
             X, y, padded_mask = batch
-            logits = self.forward(X, padded_mask).clamp(
-                -self.MAX_LOGIT_MAGNITUDE, self.MAX_LOGIT_MAGNITUDE
-            )
+            logits = self.forward(X, padded_mask)
+            if self.max_logit_magnitude is not None:
+                logits = logits.clamp(
+                    -self.max_logit_magnitude, self.max_logit_magnitude
+                )
             loss_per_token = self.objective(logits, y)
             active_mask = ~padded_mask
             num_associations = active_mask.sum().item()

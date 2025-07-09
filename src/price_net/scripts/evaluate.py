@@ -21,6 +21,7 @@ from tqdm import tqdm
 @torch.inference_mode()
 def evaluate(config: EvaluationConfig):
     model = PriceAssociatorLightningModule.load_from_checkpoint(config.ckpt_path).eval()
+    device = model.device
     with open(config.trn_config_path, "r") as f:
         training_config = TrainingConfig(**yaml.safe_load(f))
 
@@ -42,6 +43,8 @@ def evaluate(config: EvaluationConfig):
     sample_weights = []
     for i in tqdm(range(len(dataset))):
         X, y, scene_id = dataset[i]
+        X = X.to(device)
+        y = y.to(device)
         if training_config.model.prediction_strategy == PredictionStrategy.JOINT:
             X = X.unsqueeze(0)
         group_ids = dataset.instances[dataset.scene_id_to_indices[scene_id]][
@@ -55,8 +58,8 @@ def evaluate(config: EvaluationConfig):
         pred_probs = pred_logits.sigmoid().flatten()
 
         for j in range(len(X)):
-            y_true.append(y[j])
-            y_score.append(pred_probs[j])
+            y_true.append(y[j].item())
+            y_score.append(pred_probs[j].item())
 
             group_id = group_ids[j]
             num_in_group = len(id_to_product_group[group_id].product_bbox_ids)

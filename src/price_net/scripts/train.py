@@ -60,6 +60,7 @@ def train(config: TrainingConfig):
         lr=config.lr,
         weight_decay=config.weight_decay,
         gamma=config.gamma,
+        max_logit_magnitude=config.max_logit_magnitude,
     )
     datamodule = PriceAssociationDataModule(
         data_dir=config.dataset_dir,

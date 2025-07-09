@@ -46,6 +46,7 @@ class TrainingConfig(BaseModel):
     weight_decay: float = 1e-5
     random_seed: int = 1998
     precision: Precision = Precision.FULL
+    max_logit_magnitude: float | None = None
 
 
 class EvaluationConfig(BaseModel):
