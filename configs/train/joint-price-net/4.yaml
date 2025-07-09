@@ -1,0 +1,34 @@
+run_name: joint-price-net-4
+dataset_dir: data/price-attribution-scenes
+model:
+  prediction_strategy: joint
+  input_reduction: closest_per_group
+  featurization:
+    use_delta: true
+    use_prod_centroid: true
+    use_price_centroid: true
+    use_depth: true
+    use_prod_size: true
+    use_price_size: true
+  settings:
+    num_encoder_layers: 3
+    d_model: 256
+    d_feedforward: 512
+    num_heads: 4
+    mlp_layer_widths: [256, 128, 64]
+    dropout: 0.3
+logging:
+  use_wandb: true
+  project_name: price-attribution
+  log_dir: logs
+  ckpt_dir: ckpt
+num_epochs: 30
+batch_size: 16
+num_workers: 0
+gamma: 2.0
+accelerator: gpu
+lr: 3e-4
+weight_decay: 1e-5
+random_seed: 413355
+precision: bf16-mixed
+max_logit_magnitude: 10
