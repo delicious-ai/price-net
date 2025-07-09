@@ -52,6 +52,7 @@ def train(config: TrainingConfig):
         logger=logger,
         callbacks=[best_ckpt_callback, last_ckpt_callback],
         enable_model_summary=False,
+        precision=config.precision,
     )
     model = PriceAssociatorLightningModule(
         num_epochs=config.num_epochs,

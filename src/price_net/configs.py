@@ -4,6 +4,7 @@ from pathlib import Path
 
 from price_net.enums import Accelerator
 from price_net.enums import Aggregation
+from price_net.enums import Precision
 from price_net.enums import PredictionStrategy
 from pydantic import BaseModel
 
@@ -44,6 +45,7 @@ class TrainingConfig(BaseModel):
     lr: float = 3e-4
     weight_decay: float = 1e-5
     random_seed: int = 1998
+    precision: Precision = Precision.FULL
 
 
 class EvaluationConfig(BaseModel):
