@@ -43,6 +43,7 @@ class TrainingConfig(BaseModel):
     accelerator: Accelerator = Accelerator.CPU
     lr: float = 3e-4
     weight_decay: float = 1e-5
+    random_seed: int = 1998
 
 
 class EvaluationConfig(BaseModel):

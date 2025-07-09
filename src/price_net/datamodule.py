@@ -125,7 +125,7 @@ class PriceAssociationDataModule(L.LightningDataModule):
 
                 return torch.cat(features, dim=1)
 
-        return _Transform
+        return _Transform()
 
     def _get_collate_fn(self) -> Callable | None:
         if self.prediction_strategy == PredictionStrategy.JOINT:

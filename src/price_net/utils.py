@@ -1,5 +1,9 @@
+import os
+import random
 from typing import Sequence
 
+import lightning as L
+import numpy as np
 import torch
 from matplotlib import patches
 from matplotlib import pyplot as plt
@@ -210,3 +214,14 @@ def split_bboxes(
     centroids = bboxes[:, :3] if use_depth else bboxes[:, :2]
     sizes = bboxes[:, 3:5]
     return centroids, sizes
+
+
+def seed_everything(seed: int):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    L.seed_everything(seed, workers=True)

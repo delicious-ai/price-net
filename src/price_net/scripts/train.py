@@ -9,9 +9,11 @@ from lightning.pytorch.loggers import WandbLogger
 from price_net.configs import TrainingConfig
 from price_net.datamodule import PriceAssociationDataModule
 from price_net.models import PriceAssociatorLightningModule
+from price_net.utils import seed_everything
 
 
 def train(config: TrainingConfig):
+    seed_everything(config.random_seed)
     if config.logging.use_wandb:
         logger = WandbLogger(
             project=config.logging.project_name,
