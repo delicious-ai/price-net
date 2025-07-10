@@ -1,4 +1,3 @@
-import ast
 import json
 from argparse import ArgumentParser
 from itertools import product
@@ -11,23 +10,8 @@ from price_net.association.dataset import PriceAssociationDataset
 from price_net.association.heuristics import HEURISTIC_REGISTRY
 from price_net.enums import HeuristicType
 from price_net.schema import PriceAssociationScene
+from price_net.utils import parse_unknown_args
 from tqdm import tqdm
-
-
-def parse_unknown_args(unknown_args: list[str]):
-    it = iter(unknown_args)
-    kwargs = {}
-    for key in it:
-        if not key.startswith("--"):
-            raise ValueError(f"Unexpected argument format: {key}")
-        key = key[2:].replace("-", "_")
-        value = next(it)
-        try:
-            value = ast.literal_eval(value)
-        except Exception:
-            pass
-        kwargs[key] = value
-    return kwargs
 
 
 def evaluate(

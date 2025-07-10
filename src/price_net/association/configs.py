@@ -32,7 +32,7 @@ class LoggingConfig(BaseModel):
     ckpt_dir: Path = Path("ckpt")
 
 
-class TrainingConfig(BaseModel):
+class AssociatorTrainingConfig(BaseModel):
     run_name: str
     dataset_dir: Path
     model: ModelConfig
@@ -50,7 +50,7 @@ class TrainingConfig(BaseModel):
     accumulate_grad_batches: int = 1
 
 
-class EvaluationConfig(BaseModel):
+class AssociatorEvaluationConfig(BaseModel):
     trn_config_path: Path
     ckpt_path: Path
     results_dir: Path

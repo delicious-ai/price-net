@@ -6,13 +6,13 @@ import yaml
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.loggers import CSVLogger
 from lightning.pytorch.loggers import WandbLogger
-from price_net.association.configs import TrainingConfig
+from price_net.association.configs import AssociatorTrainingConfig
 from price_net.association.datamodule import PriceAssociationDataModule
 from price_net.association.models import PriceAssociatorLightningModule
 from price_net.utils import seed_everything
 
 
-def train(config: TrainingConfig):
+def train(config: AssociatorTrainingConfig):
     seed_everything(config.random_seed)
     if config.logging.use_wandb:
         logger = WandbLogger(
@@ -80,7 +80,7 @@ def main():
     args = parser.parse_args()
     with open(args.config, "r") as f:
         config_dict = yaml.safe_load(f)
-    config = TrainingConfig(**config_dict)
+    config = AssociatorTrainingConfig(**config_dict)
     train(config)
 
 
