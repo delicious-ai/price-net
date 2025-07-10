@@ -1,2 +1,0 @@
-associator_eval_config_path: configs/association/eval/joint-price-net/0.yaml
-extracted_prices_path: data/price-attribution-scenes/test/oracle_prices.json
