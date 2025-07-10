@@ -17,6 +17,7 @@ wandb/
 
 # Other stuff
 .DS_Store
+.idea/
 .env
 ignore/
 .ruff_cache/
