@@ -5,11 +5,11 @@ from typing import Literal
 
 import lightning as L
 import torch
-from price_net.configs import FeaturizationConfig
-from price_net.dataset import PriceAssociationDataset
+from price_net.association.configs import FeaturizationConfig
+from price_net.association.dataset import PriceAssociationDataset
+from price_net.association.transforms import InputTransform
 from price_net.enums import Aggregation
 from price_net.enums import PredictionStrategy
-from price_net.transforms import InputTransform
 from price_net.utils import joint_prediction_collate_fn
 from price_net.utils import marginal_prediction_collate_fn
 from price_net.utils import split_bboxes

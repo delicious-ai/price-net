@@ -5,11 +5,11 @@ from pathlib import Path
 import numpy as np
 import torch
 import yaml
-from price_net.configs import EvaluationConfig
-from price_net.configs import TrainingConfig
-from price_net.datamodule import PriceAssociationDataModule
+from price_net.association.configs import EvaluationConfig
+from price_net.association.configs import TrainingConfig
+from price_net.association.datamodule import PriceAssociationDataModule
+from price_net.association.models import PriceAssociatorLightningModule
 from price_net.enums import PredictionStrategy
-from price_net.models import PriceAssociatorLightningModule
 from price_net.schema import PriceAssociationScene
 from sklearn.metrics import average_precision_score
 from sklearn.metrics import jaccard_score

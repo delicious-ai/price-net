@@ -7,9 +7,9 @@ from pprint import pprint
 from typing import Literal
 
 import yaml
-from price_net.dataset import PriceAssociationDataset
+from price_net.association.dataset import PriceAssociationDataset
+from price_net.association.heuristics import HEURISTIC_REGISTRY
 from price_net.enums import HeuristicType
-from price_net.heuristics.definitions import HEURISTIC_REGISTRY
 from price_net.schema import PriceAssociationScene
 from tqdm import tqdm
 

@@ -6,10 +6,10 @@ from pathlib import Path
 
 import polars as pl
 import torch
+from price_net.association.transforms import ConcatenateBoundingBoxes
+from price_net.association.transforms import InputTransform
 from price_net.enums import Aggregation
 from price_net.schema import PriceAssociationScene
-from price_net.transforms import ConcatenateBoundingBoxes
-from price_net.transforms import InputTransform
 from price_net.utils import parse_bboxes
 from torch.utils.data import Dataset
 from tqdm import tqdm
