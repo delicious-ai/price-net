@@ -61,16 +61,39 @@ Evaluation metrics will be saved in a `association_metrics.yaml` file in the spe
 
 ### Evaluating a Price Attribution System
 
-To evaluate an end-to-end price attribution system, first produce a JSON file with a list of json-ified `UPCPrice` objects (see the [schema](src/price_net/schema.py) for exact specifications) for the test split of a dataset. This describes the system's predictions on the price scenes present in the dataset split. Then, run the [attribution system evaluation script](src/price_net/scripts/evaluate_system.py):
+To evaluate an end-to-end price attribution system, run the [attribution system evaluation script](src/price_net/scripts/evaluate_attributions.py):
 
 ```bash
-uv run evaluate_attribution_system \
-    --dataset-dir path/to/dataset \
-    --test-predictions path/to/predictions.json \
-    --results-dir dir/for/results
+uv run evaluate_attribution_system --config path/to/attribution/config.yaml
 ```
 
-Evaluation metrics will be saved in a `attribution_metrics.yaml` file in the specified results directory.
+Running this script requires exactly one of the following (described via the `AttributionEvaluationConfig`):
+
+1. A pre-computed set of attributions (a JSON file with a list of json-ified `PriceAttribution` objects).
+2. A set of pre-computed price extractions and specifications for running price association.
+
+The specifications mentioned in (2) include either a heuristic method (such as `nearest_per_group`) or a learned associator model (as described by an `AssociatorEvaluationConfig`). Here is what the config would look like for evaluating the price attribution performance of a system that uses heuristic association:
+
+```yaml
+dataset_dir: path/to/dataset/dir
+results_dir: path/to/results/dir
+# The price file is just a list of price bbox IDs and their extracted price
+extracted_prices_path: path/to/prices.json
+heuristic: nearest_below_per_group
+```
+
+Here is what the config would look like for evaluating the price attribution performance of a system that uses a learned association model:
+
+```yaml
+dataset_dir: path/to/dataset/dir
+results_dir: path/to/results/dir
+extracted_prices_path: path/to/prices.json
+associator_eval_config_path: path/to/associator/eval/config.yaml
+# Used to determine what is considered a valid "association"
+threshold: 0.5
+```
+
+Evaluation metrics will be saved in an `attribution_metrics.yaml` file in the results directory listed in your attribution config.
 
 ## Development
 
