@@ -9,7 +9,7 @@ from typing import Literal
 import yaml
 from price_net.dataset import PriceAssociationDataset
 from price_net.enums import HeuristicType
-from price_net.heuristics import HEURISTIC_REGISTRY
+from price_net.heuristics.definitions import HEURISTIC_REGISTRY
 from price_net.schema import PriceAssociationScene
 from tqdm import tqdm
 
@@ -30,7 +30,7 @@ def parse_unknown_args(unknown_args: list[str]):
     return kwargs
 
 
-def main(
+def evaluate(
     dataset_dir: Path,
     heuristic_type: HeuristicType,
     results_dir: Path,
@@ -80,7 +80,7 @@ def main(
     pprint(metrics)
 
 
-if __name__ == "__main__":
+def main():
     parser = ArgumentParser()
     parser.add_argument("--dataset-dir", type=Path)
     parser.add_argument("--heuristic", type=HeuristicType)
@@ -88,10 +88,14 @@ if __name__ == "__main__":
     parser.add_argument("--split", type=str, choices=["val", "test"], default="test")
     args, unknown_args = parser.parse_known_args()
     heuristic_kwargs = parse_unknown_args(unknown_args)
-    main(
+    evaluate(
         dataset_dir=args.dataset_dir,
         heuristic_type=args.heuristic,
         results_dir=args.results_dir,
         split=args.split,
         heuristic_kwargs=heuristic_kwargs,
     )
+
+
+if __name__ == "__main__":
+    main()

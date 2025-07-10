@@ -22,27 +22,40 @@ When you commit new code, the pre-commit hook will run a series of scripts to st
 
 To view a dataset, simply use the [Data Viewer](notebooks/data_viewer.ipynb). This file is a Jupyter notebook that provides an interactive interface for visualizing individual price scenes.
 
-## Training a Model
+## Training a Product-Price Associator
 
-To train a model, first fill out a `TrainingConfig` (following the [specified schema](src/price_net/configs.py)). Then, run the [training script](src/price_net/scripts/train.py):
+To train an association model, first fill out a `TrainingConfig` (following the [specified schema](src/price_net/configs.py)). Then, run the [training script](src/price_net/training/train_associator.py):
 
 ```bash
-uv run train --config path/to/your/config.yaml
+uv run train_associator --config path/to/your/config.yaml
 ```
 
 The training script will save trained weights (both the best in terms of validation loss and the most recent copy) to the checkpoint directory specified in the config, and metrics will be logged in Weights and Biases (if indicated in the config) or locally (to the log directory specified in the config). The train config will also be saved in this log directory.
 
-## Evaluating a Model
+## Evaluation
 
-To evaluate a model, first fill out an `EvaluationConfig` (see the [specifications](src/price_net/configs.py) for details). Then, run the [evaluation script](src/price_net/scripts/evaluate.py) via:
+### Evaluating a Trained Product-Price Associator
+
+To evaluate a product-price associator, first fill out an `EvaluationConfig` (see the [specifications](src/price_net/configs.py) for details). Then, run the [associator evaluation script](src/price_net/evaluation/evaluate_associator.py) via:
 
 ```bash
-uv run evaluate --config path/to/your/eval/config.yaml
+uv run evaluate_associator --config path/to/your/eval/config.yaml
 ```
 
 This script will follow the logging settings specified in the config (WandB vs. local). It will also save evaluation metrics to a YAML file in the specified results directory.
 
 To get a qualitative sense of how well a model performs for price attribution, use the [Predictions Viewer](notebooks/predictions_viewer.ipynb). This file is a Jupyter notebook that provides an interactive interface for visualizing individual predicted price associations (and comparing them to the ground truth).
+
+### Evaluating a Heuristic Product-Price Associator
+
+All heuristic methods for product-price association should implement the `Heuristic` protocol in [this file](src/price_net/heuristics/definitions.py). Then, to evaluate a specific method, run the [heuristic associator evaluation script](src/price_net/heuristics/evaluate_heuristic_associator.py) via:
+
+```bash
+uv run evaluate_heuristic_associator \
+    --dataset-dir path/to/dataset \
+    --heuristic name-of-heuristic \
+    --results-dir dir/for/results
+```
 
 ## Development
 
