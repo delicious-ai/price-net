@@ -42,7 +42,7 @@ To evaluate a product-price associator, first fill out an `EvaluationConfig` (se
 uv run evaluate_associator --config path/to/your/eval/config.yaml
 ```
 
-This script will follow the logging settings specified in the config (WandB vs. local). It will also save evaluation metrics to a YAML file in the specified results directory.
+This script will follow the logging settings specified in the config (WandB vs. local). It will also save evaluation metrics to a `association_metrics.yaml` file in the specified results directory.
 
 To get a qualitative sense of how well a model performs for price attribution, use the [Predictions Viewer](notebooks/predictions_viewer.ipynb). This file is a Jupyter notebook that provides an interactive interface for visualizing individual predicted price associations (and comparing them to the ground truth).
 
@@ -56,6 +56,21 @@ uv run evaluate_heuristic_associator \
     --heuristic name-of-heuristic \
     --results-dir dir/for/results
 ```
+
+Evaluation metrics will be saved in a `association_metrics.yaml` file in the specified results directory.
+
+### Evaluating a Price Attribution System
+
+To evaluate an end-to-end price attribution system, first produce a JSON file with a list of json-ified `UPCPrice` objects (see the [schema](src/price_net/schema.py) for exact specifications) for the test split of a dataset. This describes the system's predictions on the price scenes present in the dataset split. Then, run the [attribution system evaluation script](src/price_net/scripts/evaluate_system.py):
+
+```bash
+uv run evaluate_attribution_system \
+    --dataset-dir path/to/dataset \
+    --test-predictions path/to/predictions.json \
+    --results-dir dir/for/results
+```
+
+Evaluation metrics will be saved in a `attribution_metrics.yaml` file in the specified results directory.
 
 ## Development
 

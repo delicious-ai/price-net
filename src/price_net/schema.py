@@ -14,7 +14,7 @@ from pydantic import Field
 from pydantic import model_validator
 
 
-class Price(BaseModel, ABC):
+class Price(BaseModel, ABC, frozen=True):
     price_type: PriceType = Field(frozen=True)
     currency: Literal["$"] = "$"
 
@@ -200,3 +200,9 @@ class PriceAssociationScene(BaseModel):
                 "The IDs specified for `prices` should match the ones for `price_bboxes`."
             )
         return self
+
+
+class UPCPrice(BaseModel, frozen=True):
+    scene_id: str
+    upc: str
+    price: PriceModelType
