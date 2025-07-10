@@ -75,7 +75,7 @@ def evaluate(
 
     metrics = {"precision": precision, "recall": recall, "f1": f1}
     results_dir.mkdir(exist_ok=True, parents=True)
-    with open(results_dir / "eval_metrics.yaml", "w") as f:
+    with open(results_dir / "association_metrics.yaml", "w") as f:
         yaml.safe_dump(metrics, f)
     pprint(metrics)
 

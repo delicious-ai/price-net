@@ -98,7 +98,7 @@ def evaluate(config: EvaluationConfig):
         sample_weight=sample_weights,
     )
     config.results_dir.mkdir(parents=True, exist_ok=True)
-    with open(config.results_dir / "eval_metrics.yaml", "w") as f:
+    with open(config.results_dir / "association_metrics.yaml", "w") as f:
         yaml.safe_dump(results, f)
 
 
