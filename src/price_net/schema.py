@@ -114,6 +114,10 @@ PriceModelType = Annotated[
 ]
 
 
+class PriceBuilder(BaseModel):
+    price: PriceModelType
+
+
 class ProductPrice(BaseModel):
     upc: str
     price: PriceModelType
@@ -202,7 +206,7 @@ class PriceAssociationScene(BaseModel):
         return self
 
 
-class UPCPrice(BaseModel, frozen=True):
+class PriceAttribution(BaseModel, frozen=True):
     scene_id: str
     upc: str
     price: PriceModelType
