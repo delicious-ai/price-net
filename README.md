@@ -36,7 +36,7 @@ The training script will save trained weights (both the best in terms of validat
 
 ### Evaluating a Trained Product-Price Associator
 
-To evaluate a product-price associator, first fill out an `EvaluationConfig` (see the [specifications](src/price_net/configs.py) for details). Then, run the [associator evaluation script](src/price_net/association/evaluate.py) via:
+To evaluate a product-price associator, first fill out an `EvaluationConfig` (see the [specifications](src/price_net/association/configs.py) for details). Then, run the [associator evaluation script](src/price_net/association/evaluate.py) via:
 
 ```bash
 uv run evaluate_associator --config path/to/your/eval/config.yaml
