@@ -2,7 +2,7 @@ run_name: joint-price-net-4
 dataset_dir: data/price-attribution-scenes
 model:
   prediction_strategy: joint
-  input_reduction: closest_per_group
+  aggregation: closest_per_group
   featurization:
     use_delta: true
     use_prod_centroid: true

@@ -9,6 +9,7 @@ from price_net.association.configs import EvaluationConfig
 from price_net.association.configs import TrainingConfig
 from price_net.association.datamodule import PriceAssociationDataModule
 from price_net.association.models import PriceAssociatorLightningModule
+from price_net.enums import Aggregation
 from price_net.enums import PredictionStrategy
 from price_net.schema import PriceAssociationScene
 from sklearn.metrics import average_precision_score
@@ -61,9 +62,12 @@ def evaluate(config: EvaluationConfig):
             y_true.append(y[j].item())
             y_score.append(pred_probs[j].item())
 
-            group_id = group_ids[j]
-            num_in_group = len(id_to_product_group[group_id].product_bbox_ids)
-            sample_weights.append(num_in_group)
+            if training_config.model.aggregation == Aggregation.CLOSEST_PER_GROUP:
+                group_id = group_ids[j]
+                num_in_group = len(id_to_product_group[group_id].product_bbox_ids)
+                sample_weights.append(num_in_group)
+            else:
+                sample_weights.append(1)
 
     y_true = np.array(y_true)
     y_score = np.array(y_score)

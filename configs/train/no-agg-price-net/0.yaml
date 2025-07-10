@@ -1,8 +1,8 @@
-run_name: joint-price-net-0
+run_name: no-agg-price-net-0
 dataset_dir: data/price-attribution-scenes
 model:
   prediction_strategy: joint
-  aggregation: closest_per_group
+  aggregation: none
   featurization:
     use_delta: true
     use_prod_centroid: true
