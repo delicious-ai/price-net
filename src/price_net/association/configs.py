@@ -47,6 +47,7 @@ class TrainingConfig(BaseModel):
     random_seed: int = 1998
     precision: Precision = Precision.FULL
     max_logit_magnitude: float | None = None
+    accumulate_grad_batches: int = 1
 
 
 class EvaluationConfig(BaseModel):

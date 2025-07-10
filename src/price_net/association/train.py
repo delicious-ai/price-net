@@ -53,6 +53,7 @@ def train(config: TrainingConfig):
         callbacks=[best_ckpt_callback, last_ckpt_callback],
         enable_model_summary=False,
         precision=config.precision.value,
+        accumulate_grad_batches=config.accumulate_grad_batches,
     )
     model = PriceAssociatorLightningModule(
         num_epochs=config.num_epochs,
