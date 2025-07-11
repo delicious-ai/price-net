@@ -6,12 +6,14 @@ import yaml
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.loggers import CSVLogger
 from lightning.pytorch.loggers import WandbLogger
-from price_net.configs import TrainingConfig
-from price_net.datamodule import PriceAssociationDataModule
-from price_net.models import PriceAssociatorLightningModule
+from price_net.association.configs import AssociatorTrainingConfig
+from price_net.association.datamodule import PriceAssociationDataModule
+from price_net.association.models import PriceAssociatorLightningModule
+from price_net.utils import seed_everything
 
 
-def train(config: TrainingConfig):
+def train(config: AssociatorTrainingConfig):
+    seed_everything(config.random_seed)
     if config.logging.use_wandb:
         logger = WandbLogger(
             project=config.logging.project_name,
@@ -50,6 +52,8 @@ def train(config: TrainingConfig):
         logger=logger,
         callbacks=[best_ckpt_callback, last_ckpt_callback],
         enable_model_summary=False,
+        precision=config.precision.value,
+        accumulate_grad_batches=config.accumulate_grad_batches,
     )
     model = PriceAssociatorLightningModule(
         num_epochs=config.num_epochs,
@@ -57,6 +61,7 @@ def train(config: TrainingConfig):
         lr=config.lr,
         weight_decay=config.weight_decay,
         gamma=config.gamma,
+        max_logit_magnitude=config.max_logit_magnitude,
     )
     datamodule = PriceAssociationDataModule(
         data_dir=config.dataset_dir,
@@ -75,7 +80,7 @@ def main():
     args = parser.parse_args()
     with open(args.config, "r") as f:
         config_dict = yaml.safe_load(f)
-    config = TrainingConfig(**config_dict)
+    config = AssociatorTrainingConfig(**config_dict)
     train(config)
 
 

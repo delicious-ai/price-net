@@ -1,4 +1,3 @@
-import ast
 import json
 import statistics
 from argparse import ArgumentParser
@@ -8,30 +7,15 @@ from pprint import pprint
 from typing import Literal
 
 import yaml
-from price_net.dataset import PriceAssociationDataset
+from price_net.association.dataset import PriceAssociationDataset
+from price_net.association.heuristics import HEURISTIC_REGISTRY
 from price_net.enums import HeuristicType
-from price_net.heuristics import HEURISTIC_REGISTRY
 from price_net.schema import PriceAssociationScene
+from price_net.utils import parse_unknown_args
 from tqdm import tqdm
 
 
-def parse_unknown_args(unknown_args: list[str]):
-    it = iter(unknown_args)
-    kwargs = {}
-    for key in it:
-        if not key.startswith("--"):
-            raise ValueError(f"Unexpected argument format: {key}")
-        key = key[2:].replace("-", "_")
-        value = next(it)
-        try:
-            value = ast.literal_eval(value)
-        except Exception:
-            pass
-        kwargs[key] = value
-    return kwargs
-
-
-def main(
+def evaluate(
     dataset_dir: Path,
     heuristic_type: HeuristicType,
     results_dir: Path,
@@ -75,8 +59,8 @@ def main(
 
     metrics = {"precision": precision, "recall": recall, "f1": f1}
     results_dir.mkdir(exist_ok=True, parents=True)
-    if Path(results_dir / "eval_metrics.yaml").exists():
-        exp = yaml.safe_load(open(results_dir / "eval_metrics.yaml", "r"))
+    if Path(results_dir / "association_metrics.yaml").exists():
+        exp = yaml.safe_load(open(results_dir / "association_metrics.yaml", "r"))
         run_id = max(int(k) for k in exp["runs"].keys()) + 1
         exp["runs"][run_id] = metrics
         exp["overall"] = {
@@ -110,7 +94,7 @@ def main(
     pprint(exp)
 
 
-if __name__ == "__main__":
+def main():
     parser = ArgumentParser()
     parser.add_argument("--dataset-dir", type=Path)
     parser.add_argument("--heuristic", type=HeuristicType)
@@ -118,10 +102,14 @@ if __name__ == "__main__":
     parser.add_argument("--split", type=str, choices=["val", "test"], default="test")
     args, unknown_args = parser.parse_known_args()
     heuristic_kwargs = parse_unknown_args(unknown_args)
-    main(
+    evaluate(
         dataset_dir=args.dataset_dir,
         heuristic_type=args.heuristic,
         results_dir=args.results_dir,
         split=args.split,
         heuristic_kwargs=heuristic_kwargs,
     )
+
+
+if __name__ == "__main__":
+    main()

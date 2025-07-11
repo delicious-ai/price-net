@@ -5,11 +5,12 @@ from pathlib import Path
 import numpy as np
 import torch
 import yaml
-from price_net.configs import EvaluationConfig
-from price_net.configs import TrainingConfig
-from price_net.datamodule import PriceAssociationDataModule
+from price_net.association.configs import AssociatorEvaluationConfig
+from price_net.association.configs import AssociatorTrainingConfig
+from price_net.association.datamodule import PriceAssociationDataModule
+from price_net.association.models import PriceAssociatorLightningModule
+from price_net.enums import Aggregation
 from price_net.enums import PredictionStrategy
-from price_net.models import PriceAssociatorLightningModule
 from price_net.schema import PriceAssociationScene
 from sklearn.metrics import average_precision_score
 from sklearn.metrics import jaccard_score
@@ -19,10 +20,11 @@ from tqdm import tqdm
 
 
 @torch.inference_mode()
-def evaluate(config: EvaluationConfig):
+def evaluate(config: AssociatorEvaluationConfig):
     model = PriceAssociatorLightningModule.load_from_checkpoint(config.ckpt_path).eval()
+    device = model.device
     with open(config.trn_config_path, "r") as f:
-        training_config = TrainingConfig(**yaml.safe_load(f))
+        training_config = AssociatorTrainingConfig(**yaml.safe_load(f))
 
     datamodule = PriceAssociationDataModule(
         data_dir=training_config.dataset_dir,
@@ -42,6 +44,8 @@ def evaluate(config: EvaluationConfig):
     sample_weights = []
     for i in tqdm(range(len(dataset))):
         X, y, scene_id = dataset[i]
+        X = X.to(device)
+        y = y.to(device)
         if training_config.model.prediction_strategy == PredictionStrategy.JOINT:
             X = X.unsqueeze(0)
         group_ids = dataset.instances[dataset.scene_id_to_indices[scene_id]][
@@ -51,20 +55,26 @@ def evaluate(config: EvaluationConfig):
         scene = raw_scenes[scene_id]
         id_to_product_group = {group.group_id: group for group in scene.product_groups}
 
-        pred_probs = model.forward(X).sigmoid().flatten()
+        pred_logits: torch.Tensor = model(X)
+        pred_probs = pred_logits.sigmoid().flatten()
 
         for j in range(len(X)):
-            y_true.append(y[j])
-            y_score.append(pred_probs[j])
+            y_true.append(y[j].item())
+            y_score.append(pred_probs[j].item())
 
-            group_id = group_ids[j]
-            num_in_group = len(id_to_product_group[group_id].product_bbox_ids)
-            sample_weights.append(num_in_group)
+            if training_config.model.aggregation == Aggregation.CLOSEST_PER_GROUP:
+                group_id = group_ids[j]
+                num_in_group = len(id_to_product_group[group_id].product_bbox_ids)
+                sample_weights.append(num_in_group)
+            else:
+                sample_weights.append(1)
 
+    y_true = np.array(y_true)
+    y_score = np.array(y_score)
     results = {}
     thresholds = np.linspace(0.1, 0.9, num=9)
     for t in thresholds:
-        y_pred = np.array(y_score) > t
+        y_pred = y_score > t
         precision, recall, f1, _ = precision_recall_fscore_support(
             y_true=y_true,
             y_pred=y_pred,
@@ -92,7 +102,7 @@ def evaluate(config: EvaluationConfig):
         sample_weight=sample_weights,
     )
     config.results_dir.mkdir(parents=True, exist_ok=True)
-    with open(config.results_dir / "eval_metrics.yaml", "w") as f:
+    with open(config.results_dir / "association_metrics.yaml", "w") as f:
         yaml.safe_dump(results, f)
 
 
@@ -102,7 +112,7 @@ def main():
     args = parser.parse_args()
 
     with open(args.config, "r") as f:
-        eval_config = EvaluationConfig(**yaml.safe_load(f))
+        eval_config = AssociatorEvaluationConfig(**yaml.safe_load(f))
     evaluate(config=eval_config)
 
 

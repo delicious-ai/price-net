@@ -71,3 +71,9 @@ class HeuristicType(Enum):
     NEAREST_PER_GROUP = "nearest_per_group"
     NEAREST_BELOW_PER_GROUP = "nearest_below_per_group"
     WITHIN_EPSILON = "within_epsilon"
+
+
+class Precision(Enum):
+    BF16_MIXED = "bf16-mixed"
+    HALF_MIXED = "16-mixed"
+    FULL = "32"

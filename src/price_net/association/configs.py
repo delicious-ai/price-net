@@ -4,6 +4,7 @@ from pathlib import Path
 
 from price_net.enums import Accelerator
 from price_net.enums import Aggregation
+from price_net.enums import Precision
 from price_net.enums import PredictionStrategy
 from pydantic import BaseModel
 
@@ -31,7 +32,7 @@ class LoggingConfig(BaseModel):
     ckpt_dir: Path = Path("ckpt")
 
 
-class TrainingConfig(BaseModel):
+class AssociatorTrainingConfig(BaseModel):
     run_name: str
     dataset_dir: Path
     model: ModelConfig
@@ -39,13 +40,17 @@ class TrainingConfig(BaseModel):
     num_epochs: int = 1
     batch_size: int = 1
     num_workers: int = 0
-    gamma: float = 0.0
+    gamma: float = 1.0
     accelerator: Accelerator = Accelerator.CPU
     lr: float = 3e-4
     weight_decay: float = 1e-5
+    random_seed: int = 1998
+    precision: Precision = Precision.FULL
+    max_logit_magnitude: float | None = None
+    accumulate_grad_batches: int = 1
 
 
-class EvaluationConfig(BaseModel):
+class AssociatorEvaluationConfig(BaseModel):
     trn_config_path: Path
     ckpt_path: Path
     results_dir: Path

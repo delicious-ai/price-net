@@ -31,8 +31,10 @@ dependencies = [
 ]
 
 [project.scripts]
-train = "price_net.scripts.train:main"
-evaluate = "price_net.scripts.evaluate:main"
+train_associator = "price_net.association.train:main"
+evaluate_associator = "price_net.association.evaluate:main"
+evaluate_heuristic_associator = "price_net.association.evaluate_heuristic:main"
+evaluate_attribution_system = "price_net.scripts.evaluate_attributions:main"
 
 [build-system]
 requires = ["hatchling"]
