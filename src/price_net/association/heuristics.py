@@ -1,10 +1,15 @@
 from itertools import product
+from pathlib import Path
 from typing import Protocol
 
+import numpy as np
 import torch
 from price_net.enums import HeuristicType
 from price_net.schema import PriceAssociationScene
 from price_net.schema import PriceGroup
+from shapely.geometry import LineString
+from shapely.geometry import Point
+from shapely.ops import polygonize
 
 
 class Heuristic(Protocol):
@@ -196,6 +201,138 @@ class AssignProductToAllPricesWithinEpsilon(Heuristic):
         return groups
 
 
+class AssignProductToNearestPriceInHoughRegions(Heuristic):
+    def __init__(self, hough_lines_dir: str | Path):
+        """
+        Heuristic that uses Hough line segmentation to create regions and assigns
+        products to nearest prices within each region.
+
+        Args:
+            hough_lines_dir: Directory containing .npy files with Hough line data
+        """
+        self.hough_lines_dir = Path(hough_lines_dir)
+
+    def __call__(self, scene: PriceAssociationScene) -> list[PriceGroup]:
+        # Get scene data
+        prod_ids: list[str] = []
+        prod_bboxes = []
+        for id_, bbox in scene.product_bboxes.items():
+            prod_ids.append(id_)
+            prod_bboxes.append(bbox.to_tensor())
+
+        price_ids: list[str] = []
+        price_bboxes = []
+        for id_, bbox in scene.price_bboxes.items():
+            price_ids.append(id_)
+            price_bboxes.append(bbox.to_tensor())
+
+        # Handle empty cases
+        if len(prod_bboxes) == 0 or len(price_bboxes) == 0:
+            return []
+
+        prod_bboxes = torch.stack(prod_bboxes)
+        price_bboxes = torch.stack(price_bboxes)
+
+        # Normalized coordinates
+        prod_centroids = prod_bboxes[:, :2]
+        price_centroids = price_bboxes[:, :2]
+
+        # Load Hough lines
+        hl_path = self.hough_lines_dir / f"{scene.scene_id}.npy"
+        if not hl_path.exists():
+            # Fallback: if no Hough lines, assign to nearest price globally
+            return self._fallback_nearest_assignment(
+                prod_ids, price_ids, prod_centroids, price_centroids
+            )
+
+        shelf_array = np.load(hl_path)
+        # Create normalized line strings from Hough lines + image boundaries
+        line_strings = [
+            LineString(
+                [
+                    (shelf_array[i, 1], shelf_array[i, 0]),
+                    (shelf_array[i, 3], shelf_array[i, 2]),
+                ]
+            )
+            for i in range(len(shelf_array))
+        ]
+
+        # Add normalized image boundary lines
+        line_strings.extend(
+            [
+                LineString([(0, 0), (1, 0)]),  # top
+                LineString([(0, 0), (0, 1)]),  # left
+                LineString([(1, 0), (1, 1)]),  # right
+                LineString([(0, 1), (1, 1)]),  # bottom
+            ]
+        )
+
+        # Create regions using polygonization
+        regions = list(polygonize(line_strings))
+
+        # Find associations within each region
+        groups = []
+        for region in regions:
+            # Find products in this region
+            region_products = []
+            for idx in range(len(prod_ids)):
+                point = Point(prod_centroids[idx])
+                if region.contains(point):
+                    region_products.append(idx)
+
+            # Find prices in this region
+            region_prices = []
+            for idx in range(len(price_ids)):
+                point = Point(price_centroids[idx])
+                if region.contains(point):
+                    region_prices.append(idx)
+
+            # Assign each product to nearest price within region
+            for prod_idx in region_products:
+                if len(region_prices) == 0:
+                    continue
+
+                prod_coords = prod_centroids[prod_idx]
+                price_coords = price_centroids[region_prices]
+
+                # Compute distances in normalized space
+                dists = torch.norm(price_coords - prod_coords, dim=1)
+
+                # Find nearest price
+                nearest_idx = torch.argmin(dists).item()
+                nearest_price_idx = region_prices[nearest_idx]
+
+                # Create price group
+                group = PriceGroup(
+                    product_bbox_ids={prod_ids[prod_idx]},
+                    price_bbox_ids={price_ids[nearest_price_idx]},
+                )
+                groups.append(group)
+
+        return groups
+
+    def _fallback_nearest_assignment(
+        self, prod_ids, price_ids, prod_centroids, price_centroids
+    ):
+        """Fallback when no Hough lines are available - assign to globally nearest price"""
+        groups = []
+        for i, prod_id in enumerate(prod_ids):
+            if len(price_ids) == 0:
+                continue
+
+            prod_coords = prod_centroids[i]
+            dists = torch.norm(price_centroids - prod_coords, dim=1)
+            nearest_price_idx = torch.argmin(dists).item()
+
+            group = PriceGroup(
+                product_bbox_ids={prod_id},
+                price_bbox_ids={price_ids[nearest_price_idx]},
+            )
+            groups.append(group)
+
+        return groups
+
+
 HEURISTIC_REGISTRY: dict[HeuristicType, type[Heuristic]] = {
     HeuristicType.EVERYTHING: AssignEverythingToEverything,
     HeuristicType.WITHIN_EPSILON: AssignProductToAllPricesWithinEpsilon,
@@ -203,4 +340,5 @@ HEURISTIC_REGISTRY: dict[HeuristicType, type[Heuristic]] = {
     HeuristicType.NEAREST_BELOW: AssignProductToNearestPriceBelow,
     HeuristicType.NEAREST_PER_GROUP: AssignProductToNearestPricePerGroup,
     HeuristicType.NEAREST_BELOW_PER_GROUP: AssignProductToNearestPriceBelowPerGroup,
+    HeuristicType.HOUGH_REGIONS: AssignProductToNearestPriceInHoughRegions,
 }
