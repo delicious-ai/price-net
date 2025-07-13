@@ -72,6 +72,16 @@ uv run evaluate_attribution_system \
 
 Evaluation metrics will be saved in a `attribution_metrics.yaml` file in the specified results directory.
 
+## Extraction
+
+To run a gemini-based extraction model, set up your `.env` with the following environment variables:
+
+```
+GOOGLE_APPLICATION_CREDENTIALS={path-to-your-gcloud-auth-json}
+GOOGLE_CLOUD_PROJECT={gcloud-project}
+GOOGLE_CLOUD_LOCATION={gcloud-region}
+```
+
 ## Development
 
 ### Managing Dependencies

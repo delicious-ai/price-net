@@ -4,6 +4,7 @@ load_dotenv()
 from typing import Union, Any
 from pathlib import Path
 import json
+import os
 
 from abc import ABC, abstractmethod
 import numpy as np
@@ -36,8 +37,6 @@ class BaseExtractor(ABC):
 class GeminiExtractor(BaseExtractor):
 
     mime_type = "image/jpeg"
-    project = "dai-ultra"
-    location = "us-central1"
 
     def __init__(self, model_name: str, client: genai.Client, prompt: str):
         self.model_name = model_name
@@ -49,8 +48,8 @@ class GeminiExtractor(BaseExtractor):
     def get_genai_client(cls):
         return genai.Client(
             vertexai=True,
-            project=cls.project,
-            location=cls.location,
+            project=os.getenv("GOOGLE_CLOUD_PROJECT"),
+            location=os.getenv("GOOGLE_CLOUD_LOCATION"),
         )
 
 
