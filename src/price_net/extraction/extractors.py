@@ -5,6 +5,7 @@ from typing import Union, Any
 from pathlib import Path
 import json
 import os
+import yaml
 
 from abc import ABC, abstractmethod
 import numpy as np
@@ -32,16 +33,46 @@ class BaseExtractor(ABC):
         """From the raw input, get the correct type for downstream extraction analysis"""
         pass
 
+    @staticmethod
+    def read_yaml(file_path: Union[str, Path]) -> dict:
+        """
+        Reads a YAML file from disk and returns its contents as a Python object.
+
+        Args:
+            file_path (Union[str, Path]): Path to the YAML file.
+
+        Returns:
+            Any: Parsed contents of the YAML file
+        """
+        file_path = Path(file_path)
+        with file_path.open("r") as f:
+            return yaml.safe_load(f)
+
+    @staticmethod
+    def read_txt(file_path: Union[str, Path]) -> str:
+        """
+        Reads a text file from disk and returns its contents as a string.
+
+        Args:
+            file_path (Union[str, Path]): Path to the text file.
+
+        Returns:
+            str: Contents of the file.
+        """
+        file_path = Path(file_path)
+        with file_path.open("r", encoding="utf-8") as f:
+            return f.read()
 
 
 class GeminiExtractor(BaseExtractor):
 
     mime_type = "image/jpeg"
 
-    def __init__(self, model_name: str, client: genai.Client, prompt: str):
+    def __init__(self, model_name: str, client: genai.Client, prompt: str, temperature: float):
         self.model_name = model_name
         self.client = client
         self.prompt = prompt
+        self.temperature = temperature
 
 
     @classmethod
@@ -107,13 +138,14 @@ class EasyOcrExtractor(BaseExtractor):
 
 if __name__ == "__main__":
     fname = "/Users/porterjenkins/data/price-attribution-scenes/test/price-images/0a1ce647-c6e5-42d8-84ea-42248991171e.jpg"
-
-    prompt = "read the price from this price tag"
+    cfg = BaseExtractor.read_yaml("configs/eval/extractors/base-gemini.yaml")
+    prompt = BaseExtractor.read_txt(cfg["prompt_fpath"])
     client = GeminiExtractor.get_genai_client()
     gemini = GeminiExtractor(
-        model_name="gemini-2.0-flash-001",
+        model_name=cfg["model_name"],
         client=client,
         prompt=prompt,
+        temperature=cfg["temperature"],
     )
 
     output = gemini(fname)
