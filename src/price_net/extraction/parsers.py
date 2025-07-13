@@ -16,7 +16,7 @@ def parse_regular_price(price_contents: str) -> torch.Tensor:
             extracted from the input string.
     """
     price = float(price_contents.strip("$"))
-    output = torch.tensor([price])
+    output = torch.tensor(price)
     return output
 
 
@@ -44,7 +44,7 @@ def parse_volume_discount_price(price_contents: str) -> torch.Tensor:
 
 
 def parse_unreadable_price(price_contents: str) -> torch.Tensor:
-    return torch.tensor([0.0])
+    return torch.tensor(0.0)
 
 
 def parse_buy_x_get_y_price(price_contents: str) -> torch.Tensor:
