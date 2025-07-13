@@ -137,7 +137,7 @@ class EasyOcrExtractor(BaseExtractor):
 
 
 if __name__ == "__main__":
-    fname = "/Users/porterjenkins/data/price-attribution-scenes/test/price-images/0a1ce647-c6e5-42d8-84ea-42248991171e.jpg"
+    fname = "path-to-test-file"
     cfg = BaseExtractor.read_yaml("configs/eval/extractors/base-gemini.yaml")
     prompt = BaseExtractor.read_txt(cfg["prompt_fpath"])
     client = GeminiExtractor.get_genai_client()
