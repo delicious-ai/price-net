@@ -1,0 +1,38 @@
+accelerator: gpu
+batch_size: 16
+dataset_dir: data/price-attribution-scenes
+gamma: 2.0
+logging:
+  ckpt_dir: ckpt
+  entity: prj-research
+  log_dir: logs
+  project_name: price-attribution
+  use_wandb: true
+lr: 3e-4
+max_logit_magnitude: 10
+model:
+  aggregation: closest_per_group
+  featurization:
+    use_delta: false
+    use_depth: false
+    use_price_centroid: true
+    use_price_size: true
+    use_prod_centroid: true
+    use_prod_size: true
+  prediction_strategy: joint
+  settings:
+    d_feedforward: 512
+    d_model: 256
+    dropout: 0.3
+    mlp_layer_widths:
+    - 256
+    - 128
+    - 64
+    num_encoder_layers: 3
+    num_heads: 4
+num_epochs: 30
+num_workers: 0
+precision: bf16-mixed
+random_seed: 96709
+run_name: jpn-agg-nodiff-nodepth-0
+weight_decay: 1e-5
