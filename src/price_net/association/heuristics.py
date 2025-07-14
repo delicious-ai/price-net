@@ -10,6 +10,7 @@ from price_net.schema import PriceGroup
 from shapely.geometry import LineString
 from shapely.geometry import Point
 from shapely.ops import polygonize
+from shapely.ops import unary_union
 
 
 class Heuristic(Protocol):
@@ -208,7 +209,7 @@ class AssignProductToNearestPriceInHoughRegions(Heuristic):
         products to nearest prices within each region.
 
         Args:
-            hough_lines_dir: Directory containing .npy files with Hough line data
+            hough_lines_dir: Directory containing .npy files with Hough line data. Must contain files named as <scene_id>.npy, with normalized coordinates and format [y1, x1, y2, x2].
         """
         self.hough_lines_dir = Path(hough_lines_dir)
 
@@ -257,18 +258,13 @@ class AssignProductToNearestPriceInHoughRegions(Heuristic):
             for i in range(len(shelf_array))
         ]
 
-        # Add normalized image boundary lines
-        line_strings.extend(
-            [
-                LineString([(0, 0), (1, 0)]),  # top
-                LineString([(0, 0), (0, 1)]),  # left
-                LineString([(1, 0), (1, 1)]),  # right
-                LineString([(0, 1), (1, 1)]),  # bottom
-            ]
-        )
-
-        # Create regions using polygonization
-        regions = list(polygonize(line_strings))
+        # Create regions using polygonize
+        # Note: polygonize requires a union of lines to handle intersections properly
+        union_result = unary_union(line_strings)
+        if hasattr(union_result, "geoms"):
+            regions = list(polygonize(union_result.geoms))
+        else:
+            regions = list(polygonize([union_result]))
 
         # Find associations within each region
         groups = []
