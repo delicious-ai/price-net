@@ -1,23 +1,25 @@
-from dotenv import load_dotenv
-load_dotenv()
-
-from typing import Union, Any
-from pathlib import Path
 import json
 import os
-import yaml
+from abc import ABC
+from abc import abstractmethod
+from pathlib import Path
+from typing import Any
+from typing import Union
 
-from abc import ABC, abstractmethod
 import numpy as np
-
+import yaml
+from dotenv import load_dotenv
 from google import genai
-from google.genai.types import GenerateContentConfig, Content, Part, GenerateContentResponse
+from google.genai.types import Content
+from google.genai.types import GenerateContentConfig
+from google.genai.types import GenerateContentResponse
+from google.genai.types import Part
 
+
+load_dotenv()
 
 
 class BaseExtractor(ABC):
-
-
     @abstractmethod
     def __call__(self, img_input: Union[str, Path, bytes]) -> dict:
         """Major method for extracting price from an image"""
@@ -65,15 +67,15 @@ class BaseExtractor(ABC):
 
 
 class GeminiExtractor(BaseExtractor):
-
     mime_type = "image/jpeg"
 
-    def __init__(self, model_name: str, client: genai.Client, prompt: str, temperature: float):
+    def __init__(
+        self, model_name: str, client: genai.Client, prompt: str, temperature: float
+    ):
         self.model_name = model_name
         self.client = client
         self.prompt = prompt
         self.temperature = temperature
-
 
     @classmethod
     def get_genai_client(cls):
@@ -83,24 +85,22 @@ class GeminiExtractor(BaseExtractor):
             location=os.getenv("GOOGLE_CLOUD_LOCATION"),
         )
 
-
-
     def _route_input(self, img_input: Union[str, Path, bytes]) -> Part:
-
         if isinstance(img_input, str) | isinstance(img_input, Path):
-            return Part.from_bytes(data=open(img_input, "rb").read(), mime_type=self.mime_type)
+            return Part.from_bytes(
+                data=open(img_input, "rb").read(), mime_type=self.mime_type
+            )
         elif isinstance(img_input, bytes):
             return Part.from_bytes(data=img_input, mime_type=self.mime_type)
         else:
             raise TypeError("img_input must be str or bytes")
 
     def _api_call(self, img_input: Part) -> GenerateContentResponse:
-
         text_part = Part.from_text(text=self.prompt)
         raw_response = self.client.models.generate_content(
             model=self.model_name,
             config=GenerateContentConfig(
-                temperature=1,
+                temperature=self.temperature,
                 max_output_tokens=8192,
                 response_modalities=["TEXT"],
                 response_mime_type="application/json",
@@ -122,7 +122,6 @@ class GeminiExtractor(BaseExtractor):
         pass
 
     def __call__(self, img_input: Union[str, Path, bytes]) -> dict:
-
         img_input = self._route_input(img_input)
         raw_response = self._api_call(img_input)
         output = json.loads(raw_response.text.replace("'", '"'))
@@ -130,10 +129,8 @@ class GeminiExtractor(BaseExtractor):
         return output
 
 
-
 class EasyOcrExtractor(BaseExtractor):
     pass
-
 
 
 if __name__ == "__main__":
