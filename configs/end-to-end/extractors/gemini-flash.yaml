@@ -1,0 +1,5 @@
+model_name: "gemini-2.0-flash"
+temperature: 0.1
+prompt_fpath: "src/price_net/attribution/end-to-end-prompt.txt"
+dataset_dir: "data/price-attribution-scenes/test"
+upc_to_product_map: "data/price-attribution-scenes/upc_to_product.json"

@@ -1,0 +1,101 @@
+Your task is to analyze the price tags in the image, extract the relevant price information and associate them
+with the correct products which will be given to you. You must classify the price tags according to the categories defined below 
+and return the information as JSON objects that conform to the `PriceOutput` type.
+
+```python
+class PriceType(Enum):
+    STANDARD = "STANDARD"                       # Single item normal price
+    BULK_OFFER = "BULK_OFFER"                   # Buy multiple to get sale (3 for $5.00)
+    BUY_X_GET_Y_FOR_Z = "BUY_X_GET_Y_FOR_Z"     # Buy X of a product to get an additional Y for $Z (could be 0 if free)
+    UNKNOWN = "UNKNOWN"                         # Price tag is too blurry or otherwise unreadable
+    MISC = "MISC"                               # The price tag does not clearly fall into one of these categories.
+```
+
+Here are the Pydantic models that define the structure of the prices:
+
+```python
+class StandardPrice(BaseModel):
+    price_type: Literal[PriceType.STANDARD] = PriceType.STANDARD
+    amount: float
+
+class BulkOfferPrice(BaseModel):
+    price_type: Literal[PriceType.BULK_OFFER] = PriceType.BULK_OFFER
+    quantity: int
+    total_price: float
+
+class BuyXGetYForZPrice(BaseModel):
+    price_type: Literal[PriceType.BUY_X_GET_Y_FOR_Z] = PriceType.BUY_X_GET_Y_FOR_Z
+    buy_quantity: int
+    get_quantity: int
+    get_price: float = 0.0
+
+class UnknownPrice(BaseModel):
+    price_type: Literal[PriceType.UNKNOWN] = PriceType.UNKNOWN
+
+class MiscPrice(BaseModel):
+    price_type: Literal[PriceType.MISC] = PriceType.MISC
+    contents: str
+
+```python
+class ProductPriceAssociation(BaseModel):
+    upc: str
+    price: PriceOutput
+
+PriceOutput = Union[StandardPrice, BulkOfferPrice, BuyXGetYForZPrice, UnknownPrice, MiscPrice]
+```
+
+You will be given a list of tuples containing products found in the image with corresponding upc values 
+(i.e. [("24 oz coca-cola", "842920"), ("16 oz mountain dew baja blast", "717283"), ...]). You will respond with a list of JSON objects
+that conform to the `ProductPriceAssociation` model defined above.
+
+**Examples of JSON Output:**
+
+
+- Example 1 (Regular): If you see a price tag that reads "$3.99" that looks to be associated with a 
+Dr. Pepper with UPC value "81928", return:
+
+```json
+{"upc": "81928", "price": {"price_type": "STANDARD", "amount": 3.99}}
+```
+
+- Example 2 (Bulk Offer): If you see a price tag that reads "Buy 5 for $6.00" or "5 / $6.00" that looks
+to be associated with Waterloo Sparkling Water with upc value "712839", return:
+
+```json
+{"upc": "712839", "price": {"price_type": "BULK_OFFER", "quantity": 5, "total_price": 6.00}}
+```
+
+- Example 3 (Buy X, Get Y for Z): If the price tag says something like "Buy 3, get 3 free" and seems
+to be associated with 16oz cans of Sprite with upc value "128391", return:
+
+```json
+{"upc": "128391", "price": {"price_type": "BUY_X_GET_Y_FOR_Z", "buy_quantity": 3, "get_quantity": 3, "get_price": 0.00}}
+```
+
+(if it had instead said something like "get 3 for $2.00", you would adjust the get_price)
+
+- Example 4 (Misc): If a price tag associated with a product with upc value "123456" does not cleanly fit 
+into one of these categories, return:
+
+```json
+{"upc": "123456", "price": {"price_type": "MISC", "contents": "contents-here"}}
+```
+
+- Example 5 (Unknown): If the price tag associated with a product with upc value "828384" is unreadable, return:
+
+```json
+{"upc": "828384", "price": {"price_type": "UNKNOWN"}}
+```
+
+You can assume that all prices are given in US dollars. If you see a price tag with only cents indicated, convert
+it to dollars (e.g. 88¢ -> $0.88).
+
+Return only a valid JSON array of objects that conform to the ProductPriceAssociation model above. Ensure the JSON 
+is properly formatted and parseable. If you cannot confidently associate a product with any price tag, include an entry 
+with "price": {"price_type": "UNKNOWN"} for that UPC.
+
+Focus on accurately extracting the relevant information from the image and mapping it to the correct products. Do not
+include any preamble or explanation. Remember, if you aren't sure, return the UNKNOWN type. 
+We would rather not predict a price than potentially get it wrong if the image is too blurry, for example. Price-product
+associations are not one-to-one. Multiple products can be associated with the same price tag, and multiple price tags
+can be associated with a single product.
