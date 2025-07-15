@@ -24,3 +24,4 @@ ignore/
 .vscode/
 .pytest_cache/
 .ipynb_checkpoints
+.idea
