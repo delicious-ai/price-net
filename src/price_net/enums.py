@@ -76,3 +76,9 @@ class Precision(Enum):
     BF16_MIXED = "bf16-mixed"
     HALF_MIXED = "16-mixed"
     FULL = "32"
+
+
+class Extractor(Enum):
+    SINGLE_GEMINI = 'single-gemini'
+    EASY_OCR = 'easy-ocr'
+    ENSEMBLE_GEMINI = 'ensemble-gemini'

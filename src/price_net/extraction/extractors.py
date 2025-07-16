@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 load_dotenv()
 
-from typing import Union, Any
+from typing import Union, Any, Tuple
 from pathlib import Path
 import json
 import os
@@ -14,6 +14,7 @@ from google import genai
 from google.genai.types import GenerateContentConfig, Content, Part, GenerateContentResponse
 
 
+from price_net.enums import PriceType
 
 class BaseExtractor(ABC):
 
@@ -24,8 +25,13 @@ class BaseExtractor(ABC):
         pass
 
     @abstractmethod
-    def format(self, price_json: dict) -> np.ndarray:
+    def format(self, price_json: dict) -> Tuple[PriceType, Tuple]:
         """Formats the raw output into a numpy array to compute error metrics"""
+        pass
+
+    @abstractmethod
+    def format_as_str(self, price_json: dict) -> str:
+        """Formats the raw output into a string to compute error metrics"""
         pass
 
     @abstractmethod
@@ -62,6 +68,15 @@ class BaseExtractor(ABC):
         file_path = Path(file_path)
         with file_path.open("r", encoding="utf-8") as f:
             return f.read()
+
+    @classmethod
+    def from_dict(cls, spec: dict):
+        pass
+
+    @classmethod
+    def from_yaml(cls, model_config: Path | str):
+        cfg = BaseExtractor.read_yaml(model_config)
+        return BaseExtractor.from_yaml(cfg)
 
 
 class GeminiExtractor(BaseExtractor):
@@ -118,8 +133,43 @@ class GeminiExtractor(BaseExtractor):
 
         return raw_response
 
-    def format(self, price_json: dict) -> np.ndarray:
-        pass
+    def format(self, price_json: dict) -> Tuple[PriceType, Tuple]:
+        price_type = PriceType(price_json["price_type"])
+
+        if price_type == PriceType.STANDARD:
+            price = (price_json["amount"])
+        elif price_type == PriceType.BULK_OFFER:
+            price = (
+                price_json["quantity"],
+                price_json["total_price"]
+            )
+        elif price_type == PriceType.BUY_X_GET_Y_FOR_Z:
+            price = (
+                price_json["buy_quantity"],
+                price_json["get_quantity"],
+                price_json["get_price"]
+            )
+
+        elif price_type == PriceType.UNKNOWN:
+            price = ()
+
+        return price_type, price
+
+    def format_as_str(self, price_json: dict) -> str:
+        price_type = PriceType(price_json["price_type"])
+        if price_type == PriceType.STANDARD:
+            price = f"${float(price_json['amount']):.2f}"
+        elif price_type == PriceType.BULK_OFFER:
+            price = f"{price_json['quantity']} / ${float(price_json['total_price']):.2f}"
+        elif price_type == PriceType.BUY_X_GET_Y_FOR_Z:
+            price = f"Buy {price_json['buy_quantity']}, Get {price_json['get_quantity']} / ${float(price_json['get_price']):.2f} "
+
+        elif price_type == PriceType.UNKNOWN:
+            price = "Unreadable"
+
+        return price_type, price
+
+
 
     def __call__(self, img_input: Union[str, Path, bytes]) -> dict:
 
@@ -128,6 +178,19 @@ class GeminiExtractor(BaseExtractor):
         output = json.loads(raw_response.text.replace("'", '"'))
 
         return output
+
+    @classmethod
+    def from_dict(cls, cfg: dict):
+        prompt = BaseExtractor.read_txt(cfg["prompt_fpath"])
+        client = GeminiExtractor.get_genai_client()
+        gemini = GeminiExtractor(
+            model_name=cfg["model_name"],
+            client=client,
+            prompt=prompt,
+            temperature=cfg["temperature"],
+        )
+
+        return gemini
 
 
 
@@ -138,15 +201,7 @@ class EasyOcrExtractor(BaseExtractor):
 
 if __name__ == "__main__":
     fname = "path-to-test-file"
-    cfg = BaseExtractor.read_yaml("configs/eval/extractors/base-gemini.yaml")
-    prompt = BaseExtractor.read_txt(cfg["prompt_fpath"])
-    client = GeminiExtractor.get_genai_client()
-    gemini = GeminiExtractor(
-        model_name=cfg["model_name"],
-        client=client,
-        prompt=prompt,
-        temperature=cfg["temperature"],
-    )
-
+    config = "configs/eval/extractors/base-gemini.yaml"
+    gemini = GeminiExtractor.from_yaml(config)
     output = gemini(fname)
     print(output)
