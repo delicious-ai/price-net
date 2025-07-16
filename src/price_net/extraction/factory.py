@@ -16,9 +16,9 @@ class ExtractorFactory(object):
         if self.model_type == Extractor.SINGLE_GEMINI.value:
             return GeminiExtractor.from_dict(self.model_config)
         elif self.model_type == Extractor.EASY_OCR.value:
-            pass
+            return EasyOcrExtractor.from_dict(self.model_config)
         elif self.model_type == Extractor.ENSEMBLE_GEMINI.value:
-            pass
+            raise NotImplementedError(f"Factory cannot build {self.model_type}")
         else:
             raise NotImplementedError
 

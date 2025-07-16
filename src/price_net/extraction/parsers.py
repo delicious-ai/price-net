@@ -3,7 +3,7 @@ from typing import Tuple
 import numpy as np
 
 
-def parse_regular_price(price_contents: str) -> Tuple:
+def parse_regular_price(price_contents: str) -> Tuple[Tuple[float], str]:
     """
     Parses a regular price string and converts it into a tensor format.
         - Example: "$4.99" -> tensor([4.9900])
@@ -23,7 +23,7 @@ def parse_regular_price(price_contents: str) -> Tuple:
     return output, price
 
 
-def parse_bulk_offer_price(price_contents: str) -> Tuple:
+def parse_bulk_offer_price(price_contents: str) -> Tuple[Tuple[float, float], str]:
     """
     Parses a formatted string containing volume and price information and converts it
     into a tensor with numeric values for further processing or computation.
@@ -47,11 +47,11 @@ def parse_bulk_offer_price(price_contents: str) -> Tuple:
     return output, price
 
 
-def parse_unreadable_price(price_contents: str) -> Tuple:
+def parse_unreadable_price(price_contents: str) -> Tuple[Tuple, str]:
     return (), price_contents
 
 
-def parse_buy_x_get_y_price(price_contents: str) -> Tuple:
+def parse_buy_x_get_y_price(price_contents: str) -> Tuple[Tuple[float, float, float], str]:
     """
     Parses a string representing a "Buy X Get Y for Z" price structure and converts
     the numeric values into a PyTorch tensor.

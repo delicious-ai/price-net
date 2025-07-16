@@ -25,11 +25,16 @@ class ExtractionEvaluation(object):
 
         self.root_dir = Path(cfg.dataset_dir)
         self.price_img_dir = self.root_dir / self.price_images
-        self.price_boxes = pd.read_csv(self.root_dir / self.price_box_fpath)
+        self.price_boxes = self._read_price_boxes(self.root_dir / self.price_box_fpath)
 
         if not os.path.exists(self.price_img_dir):
             raise RuntimeError(f"Price boxes directory {self.price_img_dir} does not exist. Try running script: build_extraction_dataset.py")
 
+
+    def _read_price_boxes(self, price_box_fpath: Path) -> pd.DataFrame:
+        df = pd.read_csv(price_box_fpath)
+        df = df[~(pd.isnull(df[self.price_contents_col]) & pd.isnull(df[self.price_type_col]))]
+        return df
 
     def _price_type_string_to_enum(self, price_type: str) -> PriceType:
         """
@@ -117,6 +122,10 @@ class ExtractionEvaluation(object):
 
 
 if __name__ == "__main__":
-    cfg = ExtractionEvaluationConfig()
+    cfg = ExtractionEvaluationConfig(
+        extractor_config_path=Path("configs/eval/extractors/easy-ocr.yaml"),
+        dataset_dir=Path(""),
+        cacheing=False,
+    )
     evaluator = ExtractionEvaluation(cfg)
     evaluator.eval()

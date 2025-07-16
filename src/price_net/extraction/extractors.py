@@ -1,4 +1,7 @@
 from dotenv import load_dotenv
+
+from price_net.extraction.configs import ExtractionEvaluationConfig
+
 load_dotenv()
 
 from typing import Union, Any, Tuple
@@ -8,11 +11,10 @@ import os
 import yaml
 
 from abc import ABC, abstractmethod
-import numpy as np
 
 from google import genai
 from google.genai.types import GenerateContentConfig, Content, Part, GenerateContentResponse
-
+import easyocr
 
 from price_net.enums import PriceType
 
@@ -75,8 +77,8 @@ class BaseExtractor(ABC):
 
     @classmethod
     def from_yaml(cls, model_config: Path | str):
-        cfg = BaseExtractor.read_yaml(model_config)
-        return BaseExtractor.from_yaml(cfg)
+        cfg = cls.read_yaml(model_config)
+        return cls.from_dict(cfg)
 
 
 class GeminiExtractor(BaseExtractor):
@@ -153,6 +155,9 @@ class GeminiExtractor(BaseExtractor):
         elif price_type == PriceType.UNKNOWN:
             price = ()
 
+        else:
+            price = ()
+
         return price_type, price
 
     def format_as_str(self, price_json: dict) -> str:
@@ -166,6 +171,10 @@ class GeminiExtractor(BaseExtractor):
 
         elif price_type == PriceType.UNKNOWN:
             price = "Unreadable"
+
+        else:
+            price = "Unknown"
+            print(price_type)
 
         return price_type, price
 
@@ -195,13 +204,41 @@ class GeminiExtractor(BaseExtractor):
 
 
 class EasyOcrExtractor(BaseExtractor):
-    pass
+
+    def __init__(self, gpu: bool = False):
+        self.gpu = gpu
+        self.engine = easyocr.Reader(['en'])
 
 
+
+    def __call__(self, img_input: Union[str, Path, bytes]) -> dict:
+
+        if isinstance(img_input, Path):
+            img_input = str(img_input)
+        elif isinstance(img_input, bytes):
+            raise NotImplementedError(f"img_input must be str or Path")
+
+        result = self.engine.readtext(img_input, detail=0)
+        results_str = ", ".join(result)
+        output = {"output": results_str}
+        return output
+
+    def format(self, price_json: dict) -> Tuple[PriceType, Tuple]:
+        return (None, ())
+
+    def format_as_str(self, price_json: dict) -> str:
+        return None, price_json["output"]
+
+    def _route_input(self, img_input: Union[str, Path, bytes]) -> Union[str, Path]:
+        return img_input
+
+    @classmethod
+    def from_dict(cls, cfg: dict):
+        return EasyOcrExtractor(gpu = cfg["gpu"])
 
 if __name__ == "__main__":
-    fname = "path-to-test-file"
-    config = "configs/eval/extractors/base-gemini.yaml"
-    gemini = GeminiExtractor.from_yaml(config)
-    output = gemini(fname)
+    fname = ""
+    config = "configs/eval/extractors/easy-ocr.yaml"
+    model = EasyOcrExtractor.from_yaml(config)
+    output = model(fname)
     print(output)
