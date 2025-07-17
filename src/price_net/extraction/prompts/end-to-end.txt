@@ -91,11 +91,9 @@ You can assume that all prices are given in US dollars. If you see a price tag w
 it to dollars (e.g. 88¢ -> $0.88).
 
 Return only a valid JSON array of objects that conform to the ProductPriceAssociation model above. Ensure the JSON 
-is properly formatted and parseable. If you cannot confidently associate a product with any price tag, include an entry 
-with "price": {"price_type": "UNKNOWN"} for that UPC.
+is properly formatted and parseable. 
 
 Focus on accurately extracting the relevant information from the image and mapping it to the correct products. Do not
-include any preamble or explanation. Remember, if you aren't sure, return the UNKNOWN type. 
-We would rather not predict a price than potentially get it wrong if the image is too blurry, for example. Price-product
-associations are not one-to-one. Multiple products can be associated with the same price tag, and multiple price tags
-can be associated with a single product.
+include any preamble or explanation. We value precision over recall. We would rather not predict a product-price association 
+if we are not certain. Price-product associations are not one-to-one. Multiple products can be associated with the same price tag, 
+and multiple price tags can be associated with a single product.

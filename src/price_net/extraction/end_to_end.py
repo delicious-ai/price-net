@@ -4,13 +4,12 @@ from typing import Any
 from typing import Dict
 from typing import List
 from typing import Union
-
-from extractors import GeminiExtractor as BaseGeminiExtractor
+from price_net.extraction.extractors import GeminiExtractor
 from price_net.schema import PriceAttribution
 from price_net.schema import PriceBuilder
 
 
-class AttributionExtractor(BaseGeminiExtractor):
+class AttributionExtractor(GeminiExtractor):
     """Extractor for end-to-end price attribution using Gemini"""
 
     def __init__(self, model_name: str, client, prompt: str, temperature: float = 0.1):
@@ -63,20 +62,19 @@ class AttributionExtractor(BaseGeminiExtractor):
 
             return attributions
 
+        except Exception as e:
+            raise e
+        
         finally:
-            # Restore original prompt
+            # Restore the original prompt
             self.prompt = original_prompt
-
-    def format(self, price_json: dict) -> List[Dict[str, Any]]:
-        """Format for evaluation - converts to list of dicts for JSON serialization"""
-        return [attr.model_dump() for attr in price_json]
-
+       
 
 # Convenience function to create extractor from config
 def create_attribution_extractor(config_path: Union[str, Path]) -> AttributionExtractor:
     """Create AttributionExtractor from YAML config"""
     cfg = AttributionExtractor.read_yaml(config_path)
-    prompt = AttributionExtractor.read_txt(cfg["prompt_fpath"])
+    prompt = AttributionExtractor.read_txt(cfg["prompt_path"])
     client = AttributionExtractor.get_genai_client()
 
     return AttributionExtractor(
@@ -85,3 +83,6 @@ def create_attribution_extractor(config_path: Union[str, Path]) -> AttributionEx
         prompt=prompt,
         temperature=cfg.get("temperature", 0.1),
     )
+
+
+        
