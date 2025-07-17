@@ -19,6 +19,8 @@ from tqdm import tqdm
 
 load_dotenv()
 
+load_dotenv()
+
 
 class BaseExtractor(ABC):
     @abstractmethod
