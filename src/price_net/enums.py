@@ -65,6 +65,7 @@ class Accelerator(Enum):
 
 class HeuristicType(Enum):
     EVERYTHING = "everything"
+    GEMINI = "gemini"
     NEAREST = "nearest"
     NEAREST_BELOW = "nearest_below"
     NEAREST_PER_GROUP = "nearest_per_group"

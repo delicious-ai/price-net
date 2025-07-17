@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import statistics
 from argparse import ArgumentParser
 from collections import defaultdict
 from itertools import product
@@ -233,10 +234,46 @@ def evaluate(config: AttributionEvaluationConfig):
     metrics = {"precision": precision, "recall": recall, "f1": f1, "mae": mae}
 
     results_dir.mkdir(parents=True, exist_ok=True)
-    with open(results_dir / "attribution_metrics.yaml", "w") as f:
-        yaml.safe_dump(metrics, f)
-
-    pprint(metrics)
+    result_file = Path(results_dir / "attribution_metrics.yaml")
+    if result_file.exists():
+        exp = yaml.safe_load(open(result_file, "r"))
+        run_id = max(int(k) for k in exp["runs"].keys()) + 1
+        exp["runs"][run_id] = metrics
+        exp["overall"] = {
+            "mean": {
+                "precision": statistics.mean(
+                    [exp["runs"][k]["precision"] for k in exp["runs"].keys()]
+                ),
+                "recall": statistics.mean(
+                    [exp["runs"][k]["recall"] for k in exp["runs"].keys()]
+                ),
+                "f1": statistics.mean(
+                    [exp["runs"][k]["f1"] for k in exp["runs"].keys()]
+                ),
+                "mae": statistics.mean(
+                    [exp["runs"][k]["mae"] for k in exp["runs"].keys()]
+                ),
+            },
+            "std": {
+                "precision": statistics.stdev(
+                    [exp["runs"][k]["precision"] for k in exp["runs"].keys()]
+                ),
+                "recall": statistics.stdev(
+                    [exp["runs"][k]["recall"] for k in exp["runs"].keys()]
+                ),
+                "f1": statistics.stdev(
+                    [exp["runs"][k]["f1"] for k in exp["runs"].keys()]
+                ),
+                "mae": statistics.stdev(
+                    [exp["runs"][k]["mae"] for k in exp["runs"].keys()]
+                ),
+            },
+        }
+    else:
+        exp = {"runs": {1: metrics}}
+    with open(result_file, "w") as f:
+        yaml.safe_dump(exp, f)
+    pprint(exp)
 
 
 def main():
