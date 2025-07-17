@@ -1,0 +1,6 @@
+model_name: "gpt-4o"
+dataset_dir: "/home/lgreen/projects/price-net/data/price-attribution-scenes/test"
+prompt_path: "/home/lgreen/projects/price-net/src/price_net/extraction/prompts/end-to-end.txt"
+output_path: "/home/lgreen/projects/price-net/vlm-outputs/gpt-4o/3.json"
+upc_to_name_path: "/home/lgreen/projects/price-net/data/price-attribution-scenes/upc_to_name.csv"
+temperature: 0.1
