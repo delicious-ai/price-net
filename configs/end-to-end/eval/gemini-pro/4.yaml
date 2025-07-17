@@ -1,0 +1,3 @@
+dataset_dir: /home/lgreen/projects/price-net/data/price-attribution-scenes
+results_dir: /home/lgreen/projects/price-net/results/gemini-pro-4
+cached_attributions_path: /home/lgreen/projects/price-net/vlm-outputs/gemini-pro/4.json
