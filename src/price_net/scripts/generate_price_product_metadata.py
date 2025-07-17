@@ -10,7 +10,7 @@ import easyocr
 import polars as pl
 from google import genai
 from PIL import Image
-from price_net.scripts.eval_heuristic import parse_unknown_args
+from price_net.utils import parse_unknown_args
 from tqdm import tqdm
 
 

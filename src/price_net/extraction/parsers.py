@@ -77,13 +77,12 @@ def parse_buy_x_get_y_price(price_contents: str) -> torch.Tensor:
 
     return torch.tensor([x, y, price])
 
+
 def parse_generic_price(price_contents: str) -> torch.Tensor:
     pass
 
 
-
 if __name__ == "__main__":
-
     print(parse_regular_price(price_contents="$4.99"))
     print(parse_volume_discount_price(price_contents="5 / $40"))
     print(parse_unreadable_price("Unreadable"))
