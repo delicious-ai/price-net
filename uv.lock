@@ -2358,6 +2358,7 @@ dependencies = [
     { name = "seaborn" },
     { name = "torch" },
     { name = "torchvision" },
+    { name = "tqdm" },
     { name = "wandb" },
 ]
 
@@ -2383,6 +2384,7 @@ requires-dist = [
     { name = "seaborn", specifier = ">=0.13.2" },
     { name = "torch", specifier = ">=2.7.1" },
     { name = "torchvision", specifier = ">=0.22.1" },
+    { name = "tqdm", specifier = ">=4.67.1" },
     { name = "wandb", specifier = ">=0.21.0" },
 ]
 
