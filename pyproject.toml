@@ -13,6 +13,7 @@ dependencies = [
     "matplotlib>=3.10.3",
     "notebook>=7.4.4",
     "numpy>=2.2.6",
+    "openai>=1.97.0",
     "opencv-python>=4.11.0.86",
     "polars>=1.31.0",
     "pre-commit>=4.2.0",
