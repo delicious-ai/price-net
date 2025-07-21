@@ -3,4 +3,4 @@ dataset_dir: "data/price-attribution-scenes/test"
 prompt_path: "src/price_net/extraction/prompts/end-to-end.txt"
 output_path: "vlm-outputs/gemini-flash/1.json"
 upc_to_name_path: "data/price-attribution-scenes/upc_to_name.csv"
-temperature: 0.1
+temperature: 0.0
