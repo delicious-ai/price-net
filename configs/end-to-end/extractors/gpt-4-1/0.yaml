@@ -1,6 +1,6 @@
 model_name: "gpt-4.1"
-dataset_dir: "/home/lgreen/projects/price-net/data/price-attribution-scenes/test"
-prompt_path: "/home/lgreen/projects/price-net/src/price_net/extraction/prompts/end-to-end.txt"
-output_path: "/home/lgreen/projects/price-net/vlm-outputs/gpt-4-1/0.json"
-upc_to_name_path: "/home/lgreen/projects/price-net/data/price-attribution-scenes/upc_to_name.csv"
+dataset_dir: "data/price-attribution-scenes/test"
+prompt_path: "src/price_net/extraction/prompts/end-to-end.txt"
+output_path: "vlm-outputs/gpt-4-1/0.json"
+upc_to_name_path: "data/price-attribution-scenes/upc_to_name.csv"
 temperature: 0.1

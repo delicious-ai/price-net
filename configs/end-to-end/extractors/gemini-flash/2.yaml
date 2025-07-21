@@ -1,6 +1,6 @@
 model_name: "gemini-2.0-flash"
-dataset_dir: "/home/lgreen/projects/price-net/data/price-attribution-scenes/test"
-prompt_path: "/home/lgreen/projects/price-net/src/price_net/extraction/prompts/end-to-end.txt"
-output_path: "/home/lgreen/projects/price-net/vlm-outputs/gemini-flash/2.json"
-upc_to_name_path: "/home/lgreen/projects/price-net/data/price-attribution-scenes/upc_to_name.csv"
+dataset_dir: "data/price-attribution-scenes/test"
+prompt_path: "src/price_net/extraction/prompts/end-to-end.txt"
+output_path: "vlm-outputs/gemini-flash/2.json"
+upc_to_name_path: "data/price-attribution-scenes/upc_to_name.csv"
 temperature: 0.1
