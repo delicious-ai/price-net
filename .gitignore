@@ -17,9 +17,11 @@ wandb/
 
 # Other stuff
 .DS_Store
+.idea/
 .env
 ignore/
 .ruff_cache/
 .vscode/
 .pytest_cache/
 .ipynb_checkpoints
+.idea

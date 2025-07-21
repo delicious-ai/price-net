@@ -126,8 +126,8 @@ class PriceAssociationDataset(Dataset):
                 .alias("centroid_dist")
             )
             instances = (
-                instances.sort("centroid_dist")
-                .group_by(["scene_id", "price_id", "group_id"])
+                instances.sort("centroid_dist", "price_id")
+                .group_by(["scene_id", "price_id", "group_id"], maintain_order=True)
                 .agg(
                     pl.first("product_bbox"),
                     pl.first("price_bbox"),

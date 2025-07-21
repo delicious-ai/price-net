@@ -66,7 +66,7 @@ class BuyXGetYForZPrice(Price):
     price_type: Literal[PriceType.BUY_X_GET_Y_FOR_Z] = PriceType.BUY_X_GET_Y_FOR_Z
     buy_quantity: int
     get_quantity: int
-    get_price: float | None = None
+    get_price: float = 0.0
 
     @computed_field
     @property
