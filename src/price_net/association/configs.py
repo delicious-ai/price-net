@@ -7,6 +7,7 @@ from price_net.enums import Aggregation
 from price_net.enums import Precision
 from price_net.enums import PredictionStrategy
 from pydantic import BaseModel
+from pydantic import Field
 
 
 class FeaturizationConfig(BaseModel):
@@ -44,6 +45,7 @@ class AssociatorTrainingConfig(BaseModel):
     accelerator: Accelerator = Accelerator.CPU
     lr: float = 3e-4
     weight_decay: float = 1e-5
+    warmup_pct: float = Field(ge=0.0, le=1.0, default=0.1)
     random_seed: int = 1998
     precision: Precision = Precision.FULL
     max_logit_magnitude: float | None = None

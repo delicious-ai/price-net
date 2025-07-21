@@ -1,3 +1,4 @@
+import math
 from functools import partial
 from typing import Callable
 from typing import Literal
@@ -11,7 +12,7 @@ from torch import nn
 from torch.nn import TransformerEncoder
 from torch.nn import TransformerEncoderLayer
 from torch.optim import AdamW
-from torch.optim.lr_scheduler import CosineAnnealingLR
+from torch.optim.lr_scheduler import LambdaLR
 from torchmetrics.classification import BinaryF1Score
 from torchmetrics.classification import BinaryPrecision
 from torchmetrics.classification import BinaryRecall
@@ -142,10 +143,10 @@ class PriceAssociatorLightningModule(L.LightningModule):
 
     def __init__(
         self,
-        num_epochs: int,
         model_config: ModelConfig,
         lr: float = 3e-4,
         weight_decay: float = 1e-5,
+        warmup_pct: float = 0.1,
         gamma: float = 0.0,
         max_logit_magnitude: float | None = None,
     ):
@@ -156,9 +157,9 @@ class PriceAssociatorLightningModule(L.LightningModule):
         self.associator = ASSOCIATOR_REGISTRY[self.strategy](**model_config.settings)
 
         # Setup training hparams.
-        self.num_epochs = num_epochs
         self.lr = lr
         self.weight_decay = weight_decay
+        self.warmup_pct = warmup_pct
         self.gamma = gamma
         self.objective = partial(
             sigmoid_focal_loss_star,
@@ -177,6 +178,15 @@ class PriceAssociatorLightningModule(L.LightningModule):
         self.val_f1 = BinaryF1Score()
 
         self.save_hyperparameters()
+
+    def setup(self, stage: str | None = None):
+        if stage == "fit":
+            train_loader = self.trainer.datamodule.train_dataloader()
+            accumulate = self.trainer.accumulate_grad_batches
+            epochs = self.trainer.max_epochs
+            steps_per_epoch = len(train_loader) // accumulate
+            self.total_steps = steps_per_epoch * epochs
+            self.warmup_steps = int(self.warmup_pct * self.total_steps)
 
     def forward(
         self, x: torch.Tensor, padded_mask: torch.Tensor | None = None
@@ -256,7 +266,7 @@ class PriceAssociatorLightningModule(L.LightningModule):
         )
         return loss
 
-    def _epoch_end(self, step_type: Literal["train", "val", "test"]):
+    def _epoch_end(self, step_type: Literal["train", "val"]):
         if step_type == "train":
             precision = self.trn_precision.compute()
             recall = self.trn_recall.compute()
@@ -265,10 +275,6 @@ class PriceAssociatorLightningModule(L.LightningModule):
             precision = self.val_precision.compute()
             recall = self.val_recall.compute()
             f1 = self.val_f1.compute()
-        elif step_type == "test":
-            precision = self.test_precision.compute()
-            recall = self.test_recall.compute()
-            f1 = self.test_f1.compute()
         else:
             raise NotImplementedError("Unsupported step type")
 
@@ -282,15 +288,21 @@ class PriceAssociatorLightningModule(L.LightningModule):
     def on_validation_epoch_end(self):
         self._epoch_end("val")
 
-    def on_test_epoch_end(self):
-        self._epoch_end("test")
-
     def configure_optimizers(self):
         optimizer = AdamW(self.parameters(), lr=self.lr, weight_decay=self.weight_decay)
-        scheduler = CosineAnnealingLR(
-            optimizer, T_max=self.num_epochs, eta_min=self.lr / 10
-        )
-        return {
-            "optimizer": optimizer,
-            "lr_scheduler": scheduler,
+
+        def _get_lr_multiplier(current_step: int) -> float:
+            if current_step < self.warmup_steps:
+                return float(current_step) / float(max(1, self.warmup_steps))
+            progress = (current_step - self.warmup_steps) / float(
+                max(1, self.total_steps - self.warmup_steps)
+            )
+            return 0.5 * (1.0 + math.cos(math.pi * min(1.0, progress)))
+
+        scheduler = {
+            "scheduler": LambdaLR(optimizer, lr_lambda=_get_lr_multiplier),
+            "interval": "step",
+            "frequency": 1,
         }
+
+        return [optimizer], [scheduler]
