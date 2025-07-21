@@ -1,3 +1,4 @@
+import argparse
 import base64
 import json
 import os
@@ -16,6 +17,7 @@ from google.genai.types import GenerateContentConfig
 from google.genai.types import GenerateContentResponse
 from google.genai.types import Part
 from openai import OpenAI
+from tqdm import tqdm
 
 load_dotenv()
 
@@ -111,7 +113,7 @@ class GeminiExtractor(BaseExtractor):
         raw_response = self.client.models.generate_content(
             model=self.model_name,
             config=GenerateContentConfig(
-                temperature=1,
+                temperature=self.temperature,
                 max_output_tokens=8192,
                 response_modalities=["TEXT"],
                 response_mime_type="application/json",
@@ -228,7 +230,11 @@ class EasyOcrExtractor(BaseExtractor):
 
 
 if __name__ == "__main__":
-    fname = "path-to-test-file"
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--dataset-path", type=Path, help="Path to the dataset (train or test)"
+    )
+    args = parser.parse_args()
     cfg = BaseExtractor.read_yaml("configs/eval/extractors/base-gemini.yaml")
     prompt = BaseExtractor.read_txt(cfg["prompt_fpath"])
     client = GeminiExtractor.get_genai_client()
@@ -239,5 +245,19 @@ if __name__ == "__main__":
         temperature=cfg["temperature"],
     )
 
-    output = gemini(fname)
-    print(output)
+    results_path = args.dataset_path / "extracted_prices.json"
+    if os.path.exists(results_path):
+        result = json.load(open(results_path))
+        cached_ids = [x["price_id"] for x in result]
+    else:
+        cached_ids = []
+        result = []
+    for filename in tqdm(os.listdir(args.dataset_path / "price-images")):
+        price_id = filename.split(".")[0]
+        if price_id in cached_ids:
+            continue
+        filepath = args.dataset_path / "price-images" / filename
+        output = gemini(filepath)
+        result.append({"price_id": price_id, "price": output})
+        with open(results_path, "w") as f:
+            json.dump(result, f, indent=2)
