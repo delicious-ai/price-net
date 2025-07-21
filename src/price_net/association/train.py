@@ -64,7 +64,6 @@ def train(config: AssociatorTrainingConfig):
         featurization_config=config.model.featurization,
     )
     model = PriceAssociatorLightningModule(
-        num_epochs=config.num_epochs,
         model_config=config.model,
         lr=config.lr,
         weight_decay=config.weight_decay,

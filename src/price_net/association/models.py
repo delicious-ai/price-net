@@ -181,7 +181,7 @@ class PriceAssociatorLightningModule(L.LightningModule):
 
     def setup(self, stage: str | None = None):
         if stage == "fit":
-            train_loader = self.trainer.train_dataloader
+            train_loader = self.trainer.datamodule.train_dataloader()
             accumulate = self.trainer.accumulate_grad_batches
             epochs = self.trainer.max_epochs
             steps_per_epoch = len(train_loader) // accumulate
