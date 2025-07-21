@@ -32,6 +32,8 @@ uv run train_associator --config path/to/your/config.yaml
 
 The training script will save trained weights (both the best in terms of validation loss and the most recent copy) to the checkpoint directory specified in the config, and metrics will be logged in Weights and Biases (if indicated in the config) or locally (to the log directory specified in the config). The train config will also be saved in this log directory.
 
+**Note**: If training on a GPU, our enforcement of deterministic operations may mean you need to set `CUBLAS_WORKSPACE_CONFIG=:4096:8` in your environment before running the above script.
+
 ## Evaluation
 
 ### Evaluating a Trained Product-Price Associator
@@ -99,7 +101,7 @@ Evaluation metrics will be saved in an `attribution_metrics.yaml` file in the re
 
 To run a gemini-based extraction model, set up your `.env` with the following environment variables:
 
-```
+```dotenv
 GOOGLE_APPLICATION_CREDENTIALS={path-to-your-gcloud-auth-json}
 GOOGLE_CLOUD_PROJECT={gcloud-project}
 GOOGLE_CLOUD_LOCATION={gcloud-region}

@@ -7,6 +7,10 @@ from typing import Protocol
 
 import torch
 from google import genai
+from google.genai.types import Content
+from google.genai.types import GenerateContentConfig
+from google.genai.types import Part
+from google.genai.types import ThinkingConfig
 from price_net.enums import HeuristicType
 from price_net.schema import PriceAssociationScene
 from price_net.schema import PriceGroup
@@ -204,7 +208,6 @@ class AssignProductToAllPricesWithinEpsilon(Heuristic):
 class Gemini(Heuristic):
     def __init__(self, model: str, price_product_metadata_path: str):
         from dotenv import load_dotenv
-        from products_client import get_product_client
 
         load_dotenv()
         self.model = model
@@ -213,17 +216,8 @@ class Gemini(Heuristic):
             project=os.getenv("GOOGLE_CLOUD_PROJECT"),
             location=os.getenv("GOOGLE_CLOUD_LOCATION"),
         )
-        self.product_client = (
-            get_product_client(
-                url=os.getenv("PRODUCTS_CLIENT_URL"),
-                client_id=os.getenv("PRODUCTS_CLIENT_ID"),
-                client_secret=os.getenv("PRODUCTS_CLIENT_SECRET"),
-            )
-            if os.getenv("PRODUCTS_CLIENT_URL")
-            else None
-        )
         with open("data/metadata/products.json", "r") as f:
-            self.product_names = json.load(f)
+            self.product_names: dict[str, str] = json.load(f)
         with open(price_product_metadata_path, "r") as f:
             self.price_tag_metadata = json.load(f)
 
@@ -238,18 +232,14 @@ class Gemini(Heuristic):
         try:
             raw = self.client.models.generate_content(
                 model=self.model,
-                contents=[
-                    genai.types.Content(
-                        role="user", parts=[genai.types.Part(text=prompt)]
-                    )
-                ],
-                config=genai.types.GenerateContentConfig(
+                contents=[Content(role="user", parts=[Part(text=prompt)])],
+                config=GenerateContentConfig(
                     temperature=1,
                     top_p=0.95,
                     response_modalities=["TEXT"],
                     response_mime_type="application/json",
                     thinking_config=(
-                        genai.types.ThinkingConfig(thinking_budget=-1)
+                        ThinkingConfig(thinking_budget=-1)
                         if "pro" in self.model
                         else None
                     ),
@@ -282,18 +272,8 @@ class Gemini(Heuristic):
         """
         products = {}
         for upc in scene.products.values():
-            if upc not in self.product_names or self.product_names[upc] is None:
-                if self.product_client:
-                    product = self.product_client.query.product(upc=upc)
-                    self.product_names[upc] = product.name
-                    name = product.name
-                else:
-                    name = None
-            else:
-                name = self.product_names[upc]
+            name = self.product_names.get(upc)
             products[upc] = name
-        with open("data/metadata/products.json", "w") as f:
-            json.dump(self.product_names, f, indent=2)
         return [
             {
                 "upc": upc,
