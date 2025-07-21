@@ -1,7 +1,16 @@
-from itertools import product
+import json
+import os
+import time
+from collections import defaultdict
+from itertools import product as cross_product
 from typing import Protocol
 
 import torch
+from google import genai
+from google.genai.types import Content
+from google.genai.types import GenerateContentConfig
+from google.genai.types import Part
+from google.genai.types import ThinkingConfig
 from price_net.enums import HeuristicType
 from price_net.schema import PriceAssociationScene
 from price_net.schema import PriceGroup
@@ -17,7 +26,7 @@ class AssignEverythingToEverything(Heuristic):
         price_ids = scene.price_bboxes.keys()
         groups = [
             PriceGroup(product_bbox_ids={prod_id}, price_bbox_ids={price_id})
-            for prod_id, price_id in product(prod_ids, price_ids)
+            for prod_id, price_id in cross_product(prod_ids, price_ids)
         ]
         return groups
 
@@ -196,8 +205,153 @@ class AssignProductToAllPricesWithinEpsilon(Heuristic):
         return groups
 
 
+class Gemini(Heuristic):
+    def __init__(self, model: str, price_product_metadata_path: str):
+        from dotenv import load_dotenv
+
+        load_dotenv()
+        self.model = model
+        self.client = genai.Client(
+            vertexai=True,
+            project=os.getenv("GOOGLE_CLOUD_PROJECT"),
+            location=os.getenv("GOOGLE_CLOUD_LOCATION"),
+        )
+        with open("data/metadata/products.json", "r") as f:
+            self.product_names: dict[str, str] = json.load(f)
+        with open(price_product_metadata_path, "r") as f:
+            self.price_tag_metadata = json.load(f)
+
+    def gemini(
+        self, pairs: list[dict[str, dict[str, str]]], retry: bool = True
+    ) -> list[bool]:
+        prompt = (
+            open("src/price_net/prompts/product_price_association.txt")
+            .read()
+            .format(pairs=pairs)
+        )
+        try:
+            raw = self.client.models.generate_content(
+                model=self.model,
+                contents=[Content(role="user", parts=[Part(text=prompt)])],
+                config=GenerateContentConfig(
+                    temperature=1,
+                    top_p=0.95,
+                    response_modalities=["TEXT"],
+                    response_mime_type="application/json",
+                    thinking_config=(
+                        ThinkingConfig(thinking_budget=-1)
+                        if "pro" in self.model
+                        else None
+                    ),
+                ),
+            )
+        except Exception as e:
+            print(f"Throttled. Retrying...: {e}")
+            if retry:
+                time.sleep(30)
+                return self.gemini(pairs=pairs, retry=False)
+            else:
+                raise Exception(f"Failed too many times: {e}") from e
+        try:
+            predicted_ids = json.loads(raw.text.strip())
+        except json.JSONDecodeError:
+            print(f"Failed to parse response: `{raw.text.strip()}`")
+            return [False] * len(pairs)
+        assert isinstance(predicted_ids, list), (
+            f"Response is not a list: {type(predicted_ids)}"
+        )
+        response = [
+            str(pair["id"]) in predicted_ids or int(pair["id"]) in predicted_ids
+            for pair in pairs
+        ]
+        return response
+
+    def _prepare_products(self, scene: PriceAssociationScene) -> list[dict[str, str]]:
+        """
+        Gets a unique list of products in the scene, with the upc and name.
+        """
+        products = {}
+        for upc in scene.products.values():
+            name = self.product_names.get(upc)
+            products[upc] = name
+        return [
+            {
+                "upc": upc,
+                "name": name,
+            }
+            for upc, name in products.items()
+        ]
+
+    def _prepare_prices(self, scene: PriceAssociationScene) -> list[dict[str, str]]:
+        """
+        Gets a unique list of prices in the scene, with the price type and contents, and the product metadata.
+        """
+        prices = {}
+        for bbox_id, price in scene.prices.items():
+            prices[(price.price_type.value, price.price_text)] = (
+                self.price_tag_metadata[bbox_id]
+            )
+        return [
+            {
+                "price_type": price_type,
+                "price_contents": price_contents,
+                "more_info": product_metadata["price_product_metadata"],
+            }
+            for (price_type, price_contents), product_metadata in prices.items()
+        ]
+
+    def _prepare_ids(
+        self, scene: PriceAssociationScene, pairs: list[dict]
+    ) -> list[dict[str, list[str]]]:
+        """
+        Gets a list of ids for the products and prices in the scene.
+        """
+        product_reverse_lookup = defaultdict(list)
+        for key, value in scene.products.items():
+            product_reverse_lookup[value].append(key)
+
+        price_reverse_lookup = defaultdict(list)
+        for key, value in scene.prices.items():
+            price_reverse_lookup[(value.price_type.value, value.price_text)].append(key)
+
+        ids = []
+        for idx, pair in enumerate(pairs):
+            product, price = pair["product"], pair["price"]
+            pair["id"] = idx
+            ids.append(
+                {
+                    "product_bbox_ids": product_reverse_lookup[product["upc"]],
+                    "price_bbox_ids": price_reverse_lookup[
+                        (price["price_type"], price["price_contents"])
+                    ],
+                }
+            )
+        return ids
+
+    def __call__(self, scene: PriceAssociationScene) -> list[PriceGroup]:
+        # the model will return a list of
+        # { product_bbox_ids: list[str], price_bbox_ids: list[str] }, cast to list[PriceGroup]
+        products = self._prepare_products(scene)
+        prices = self._prepare_prices(scene)
+        pairs = [
+            {"product": prod, "price": price}
+            for prod, price in cross_product(products, prices)
+        ]
+        ids = self._prepare_ids(scene, pairs=pairs)
+        response: list[bool] = self.gemini(pairs=pairs)
+        return [
+            PriceGroup(
+                product_bbox_ids=ids[index]["product_bbox_ids"],
+                price_bbox_ids=ids[index]["price_bbox_ids"],
+            )
+            for index, is_associated in enumerate(response)
+            if is_associated
+        ]
+
+
 HEURISTIC_REGISTRY: dict[HeuristicType, type[Heuristic]] = {
     HeuristicType.EVERYTHING: AssignEverythingToEverything,
+    HeuristicType.GEMINI: Gemini,
     HeuristicType.WITHIN_EPSILON: AssignProductToAllPricesWithinEpsilon,
     HeuristicType.NEAREST: AssignProductToNearestPrice,
     HeuristicType.NEAREST_BELOW: AssignProductToNearestPriceBelow,
