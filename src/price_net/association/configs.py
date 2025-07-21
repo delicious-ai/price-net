@@ -54,3 +54,14 @@ class AssociatorEvaluationConfig(BaseModel):
     trn_config_path: Path
     ckpt_path: Path
     results_dir: Path
+
+class EndToEndConfig(BaseModel):
+    model_name: str
+    dataset_dir: Path
+    prompt_path: Path
+    output_path: Path
+    upc_to_name_path: Path
+    temperature: float = 0.1
+ 
+
+
