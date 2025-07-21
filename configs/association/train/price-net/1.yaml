@@ -1,10 +1,10 @@
-run_name: no-agg-price-net-4
+run_name: price-net-1
 dataset_dir: data/price-attribution-scenes
 model:
   prediction_strategy: joint
-  aggregation: none
+  aggregation: closest_per_group
   featurization:
-    use_delta: true
+    use_delta: false
     use_prod_centroid: true
     use_price_centroid: true
     use_depth: true
@@ -14,7 +14,7 @@ model:
     num_encoder_layers: 3
     d_model: 256
     d_feedforward: 512
-    num_heads: 4
+    num_heads: 8
     mlp_layer_widths: [256, 128, 64]
     dropout: 0.3
 logging:
@@ -29,6 +29,7 @@ gamma: 2.0
 accelerator: gpu
 lr: 3e-4
 weight_decay: 1e-5
-random_seed: 96709
+warmup_pct: 0.1
+random_seed: 1
 precision: bf16-mixed
-max_logit_magnitude: 10
+max_logit_magnitude: 5

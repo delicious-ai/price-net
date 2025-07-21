@@ -1,3 +1,0 @@
-trn_config_path: configs/association/train/no-agg-price-net/4.yaml
-ckpt_path: ckpt/no-agg-price-net-4/best_loss.ckpt
-results_dir: results/no-agg-price-net-4
