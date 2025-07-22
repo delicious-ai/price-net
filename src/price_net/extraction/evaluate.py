@@ -2,7 +2,6 @@ import os
 import pandas as pd
 from pathlib import Path
 from tqdm import tqdm
-import string
 
 from price_net.enums import PriceType
 
@@ -89,9 +88,36 @@ class ExtractionEvaluation(object):
         iou = len(intersection) / len(union) if union else 1.0
         return iou
 
+
+    @staticmethod
+    def get_iou_bigrams(s1: str, s2: str) -> float:
+        """
+        Compute the Jaccard index between two strings using character bigrams.
+
+        Args:
+            s1 (str): First input string
+            s2 (str): Second input string
+
+        Returns:
+            float: Jaccard similarity score
+        """
+
+        def get_bigrams(s: str) -> set:
+            s = s.lower().strip()
+            return {s[i:i + 2] for i in range(len(s) - 1)} if len(s) >= 2 else set()
+
+        bigrams1 = get_bigrams(s1)
+        bigrams2 = get_bigrams(s2)
+
+        intersection = bigrams1 & bigrams2
+        union = bigrams1 | bigrams2
+
+        return len(intersection) / len(union) if union else 1.0
+
     def eval(self):
 
         iou_arr = []
+        iou_bigrams_arr = []
         price_is_correct = []
         type_is_correct = []
 
@@ -107,24 +133,28 @@ class ExtractionEvaluation(object):
 
             _, pred_price_str = self.extractor.format_as_str(raw_output)
 
-            price_is_correct.append(pred_price_str == gt_price_str)
+            price_is_correct.append(pred_price_str.lower() == gt_price_str.lower())
             type_is_correct.append(pred_price_type == ground_truth_price_type)
 
-            iou = self.get_iou_words(pred_price_str, gt_price_str)
+            iou = self.get_iou_words(pred_price_str.lower(), gt_price_str.lower())
             iou_arr.append(iou)
+            iou_bigram = self.get_iou_bigrams(pred_price_str.lower(), gt_price_str.lower())
+            iou_bigrams_arr.append(iou_bigram)
 
 
 
         print("Price Accuracy: ", np.mean(price_is_correct))
         print("Price Type Accuracy: ", np.mean(type_is_correct))
         print("mIoU: ", np.mean(iou_arr))
+        print("mIoU Bigram: ", np.mean(iou_bigrams_arr))
+
 
 
 
 if __name__ == "__main__":
     cfg = ExtractionEvaluationConfig(
-        extractor_config_path=Path("configs/eval/extractors/easy-ocr.yaml"),
-        dataset_dir=Path(""),
+        extractor_config_path=Path("configs/eval/extractors/base-gemini.yaml"),
+        dataset_dir=Path("/Users/porterjenkins/data/price-attribution-scenes/test"),
         cacheing=False,
     )
     evaluator = ExtractionEvaluation(cfg)

@@ -82,3 +82,4 @@ class Extractor(Enum):
     SINGLE_GEMINI = 'single-gemini'
     EASY_OCR = 'easy-ocr'
     ENSEMBLE_GEMINI = 'ensemble-gemini'
+    GOOGLE_OCR = 'google-ocr'
