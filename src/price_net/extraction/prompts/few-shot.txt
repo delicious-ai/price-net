@@ -78,6 +78,15 @@ PriceOutput = Union[StandardPrice, BulkOfferPrice, BuyXGetYForZPrice, UnknownPri
 You can assume that all prices are given in US dollars. If you see a price tag with only cents indicated, convert
 it to dollars (e.g. 88¢ -> $0.88).
 
+A product’s price will rarely exceed $99. If you see a price displayed without a decimal point, infer the correct decimal placement as follows:
+
+- Example 1: $197 -> 1.97
+- Example 2: $368 -> 3.68
+- Example 3: $198 -> 1.98
+
+This means that when you see a three-digit number like “$197”, it likely represents a price under $10 (i.e., $1.97), not one over $100.
+
+
 Return only the JSON object, and ensure it is valid and conforms to one of the above models.
 
 Focus on accurately extracting the relevant information from the image and mapping it to the correct fields. Do not
