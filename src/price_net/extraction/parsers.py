@@ -1,4 +1,6 @@
 from typing import Tuple
+from pathlib import Path
+import json
 
 import numpy as np
 
@@ -18,8 +20,8 @@ def parse_regular_price(price_contents: str) -> Tuple[Tuple[float], str]:
             extracted from the input string.
     """
     price = float(price_contents.strip("$"))
+    output = (price,)
     price = f"${price:.2f}"
-    output = (price)
     return output, price
 
 

@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "easyocr>=1.7.2",
+    "google-cloud-storage>=3.2.0",
     "google-cloud-vision>=3.10.2",
     "ipykernel>=6.29.5",
     "ipynb>=0.5.1",
