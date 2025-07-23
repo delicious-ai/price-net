@@ -56,7 +56,7 @@ class ExtractionEvaluation(object):
 
 
     def _read_price_boxes(self, price_box_fpath: Path) -> pd.DataFrame:
-        df = pd.read_csv(price_box_fpath).head(10)
+        df = pd.read_csv(price_box_fpath)
         df = df[~(pd.isnull(df[self.price_contents_col]) & pd.isnull(df[self.price_type_col]))]
         return df
 
