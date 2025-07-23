@@ -23,11 +23,15 @@ class ExtractionEvaluation(object):
     def __init__(
             self,
             cfg: ExtractionEvaluationConfig,
+            result_dir: Path,
             cache_dir: Path | None = None,
             exp_name: str | None = None,
             use_cache: bool = True
     ):
         self.exp_name = exp_name
+        self.result_dir = result_dir
+        self.result_dir.mkdir(exist_ok=True, parents=True)
+        self.results_path = self.result_dir / f"{self.exp_name}.json"
         self.cache_dir = self._build_cache_dir(cache_dir)
         self.cache_path = self.cache_dir / f"{self.exp_name}.json"
         self.use_cache = use_cache
@@ -180,14 +184,21 @@ class ExtractionEvaluation(object):
 
             if self.use_cache:
                 with open(self.cache_path, "w") as f:
-                    json.dump(cached_outputs, f)
+                    json.dump(cached_outputs, f, indent=2)
+
+        results = {
+            "price_accuracy": float(np.mean(price_is_correct)),
+            "price_type_accuracy": float(np.mean(type_is_correct)),
+            "mean_iou": float(np.mean(iou_arr)),
+            "mean_iou_bigram": float(np.mean(iou_bigrams_arr)),
+        }
 
 
+        print(json.dumps(results, indent=2))
+        with open(self.results_path, "w") as f:
+            json.dump(results, f, indent=2)
 
-        print("Price Accuracy: ", np.mean(price_is_correct))
-        print("Price Type Accuracy: ", np.mean(type_is_correct))
-        print("mIoU: ", np.mean(iou_arr))
-        print("mIoU Bigram: ", np.mean(iou_bigrams_arr))
+
 
 
 
@@ -211,6 +222,11 @@ def parse_args():
         type=str,
         help="Name of experiment"
     )
+    parser.add_argument(
+        "--results-dir",
+        type=str,
+        default="results/extraction"
+    )
     return parser.parse_args()
 
 if __name__ == "__main__":
@@ -222,6 +238,7 @@ if __name__ == "__main__":
     )
     evaluator = ExtractionEvaluation(
         cfg = cfg,
-        exp_name = args.exp_name
+        exp_name = args.exp_name,
+        result_dir = Path(args.results_dir)
     )
     evaluator.eval()
