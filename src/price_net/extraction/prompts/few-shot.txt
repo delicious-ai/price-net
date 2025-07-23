@@ -80,9 +80,9 @@ it to dollars (e.g. 88¢ -> $0.88).
 
 A product’s price will rarely exceed $99. If you see a price displayed without a decimal point, infer the correct decimal placement as follows:
 
-- Example 1: $197 -> 1.97
-- Example 2: $368 -> 3.68
-- Example 3: $198 -> 1.98
+- Example 1: $197 -> $1.97
+- Example 2: $368 -> $3.68
+- Example 3: $198 -> $1.98
 
 This means that when you see a three-digit number like “$197”, it likely represents a price under $10 (i.e., $1.97), not one over $100.
 

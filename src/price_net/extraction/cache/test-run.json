@@ -1,0 +1,135 @@
+{
+  "5a96c3b0-bba8-42b8-8b64-d663942d5182.jpg": {
+    "price_type": "BULK_OFFER",
+    "quantity": 3,
+    "total_price": 5.99
+  },
+  "b27d462d-864d-4728-a57d-4d6395b9bb4d.jpg": {
+    "price_type": "BULK_OFFER",
+    "quantity": 2,
+    "total_price": 3.5
+  },
+  "1c1a89a5-6474-4d98-996e-ea90df93183f.jpg": {
+    "price_type": "STANDARD",
+    "amount": 30.99
+  },
+  "0d916188-3f96-4d94-afa4-2e3bff8a76a1.jpg": {
+    "price_type": "BULK_OFFER",
+    "quantity": 3,
+    "total_price": 6.0
+  },
+  "c7736ee8-29a0-49b7-b2cf-1494caa09f97.jpg": {
+    "price_type": "BULK_OFFER",
+    "quantity": 2,
+    "total_price": 3.5
+  },
+  "2a0d42e8-50a5-41be-b6a5-3850c61cf940.jpg": {
+    "price_type": "STANDARD",
+    "amount": 13.99
+  },
+  "be5215d0-2879-4372-b70c-707f63995afc.jpg": {
+    "price_type": "BULK_OFFER",
+    "quantity": 4,
+    "total_price": 10.0
+  },
+  "17e5c20d-dfc4-4742-8c91-481f2268b300.jpg": {
+    "price_type": "STANDARD",
+    "amount": 1.89
+  },
+  "58a1c715-1a54-49ac-bb8d-71b51d9086c6.jpg": {
+    "price_type": "UNKNOWN"
+  },
+  "982f4263-069d-4722-8757-e64170c21566.jpg": {
+    "price_type": "STANDARD",
+    "amount": 2.97
+  },
+  "aa266d2c-b349-4768-a9eb-147656567146.jpg": {
+    "price_type": "STANDARD",
+    "amount": 9.49
+  },
+  "5baf5f3c-580c-46f6-8337-f0ac7b7bdf6f.jpg": {
+    "price_type": "STANDARD",
+    "amount": 2.81
+  },
+  "3dfe082d-a6a7-43c3-8105-9c6fa87a74b9.jpg": {
+    "price_type": "UNKNOWN"
+  },
+  "bc17882c-8d63-46f2-b10d-11594b65eed4.jpg": {
+    "price_type": "STANDARD",
+    "amount": 11.99
+  },
+  "a75a9c02-e009-47d5-ab52-7144fbacf4b6.jpg": {
+    "price_type": "STANDARD",
+    "amount": 1.97
+  },
+  "bbee8fd2-0463-43e2-8dbb-2dc34037d0e8.jpg": {
+    "price_type": "STANDARD",
+    "amount": 3.69
+  },
+  "973bc5f4-e098-48a2-9fc0-9343775637b4.jpg": {
+    "price_type": "BULK_OFFER",
+    "quantity": 2,
+    "total_price": 9.0
+  },
+  "853cb30e-4796-4356-a47c-ca2d54d63897.jpg": {
+    "price_type": "STANDARD",
+    "amount": 1.97
+  },
+  "172bb5c1-9f04-4466-b3eb-adbf9a89a3f9.jpg": {
+    "price_type": "STANDARD",
+    "amount": 9.0
+  },
+  "9386643e-9f85-41ef-bf6f-fe5944f01232.jpg": {
+    "price_type": "BULK_OFFER",
+    "quantity": 3,
+    "total_price": 6.0
+  },
+  "4474e17f-6be7-4a76-b599-487d1d6d8375.jpg": {
+    "price_type": "BULK_OFFER",
+    "quantity": 3,
+    "total_price": 10.0
+  },
+  "840a5c78-2d17-4588-86f0-d38e4e71e2d9.jpg": {
+    "price_type": "STANDARD",
+    "amount": 9.88
+  },
+  "457eb565-5f1a-461f-8f69-8e18fbd4d1f7.jpg": {
+    "price_type": "STANDARD",
+    "amount": 0.98
+  },
+  "23e2f45c-b7d3-4a3d-9d6f-2d57cadfc29d.jpg": {
+    "price_type": "STANDARD",
+    "amount": 3.49
+  },
+  "acf947f3-1136-4881-a39c-68f66b68e3db.jpg": {
+    "price_type": "STANDARD",
+    "amount": 7.49
+  },
+  "d7cb6f6d-44d7-4a1b-a97d-374c3eef1043.jpg": {
+    "price_type": "BULK_OFFER",
+    "quantity": 2,
+    "total_price": 6.0
+  },
+  "22e72bb8-9d73-4ab6-9ccd-177487647189.jpg": {
+    "price_type": "STANDARD",
+    "amount": 2.58
+  },
+  "86899da3-fa3f-4677-b3cf-57eb17e47341.jpg": {
+    "price_type": "UNKNOWN"
+  },
+  "612434bb-478f-42d8-9c50-f704aada2b35.jpg": {
+    "price_type": "BULK_OFFER",
+    "quantity": 3,
+    "total_price": 4.5
+  },
+  "41afb7a9-7743-4a45-948b-c3799a84a157.jpg": {
+    "price_type": "BUY_X_GET_Y_FOR_Z",
+    "buy_quantity": 1,
+    "get_quantity": 1,
+    "get_price": 0.0
+  },
+  "5f88f55b-8d9a-4d3a-ab55-94050fb19aa2.jpg": {
+    "price_type": "STANDARD",
+    "amount": 17.99
+  }
+}
