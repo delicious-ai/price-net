@@ -98,18 +98,8 @@ class GeminiExtractor(BaseExtractor):
         else:
             raise TypeError("img_input must be str or bytes")
 
-    def _api_call(
-        self, img_input: Part, custom_prompt: str = None
-    ) -> GenerateContentResponse:
-        """
-        Make API call to Gemini with image and text prompt.
-
-        Args:
-            img_input: The image part for the API call
-            custom_prompt: Optional prompt to use instead of self.prompt
-        """
-        text_content = self.prompt if custom_prompt is None else custom_prompt
-        text_part = Part.from_text(text=text_content)
+    def _api_call(self, img_input: Part) -> GenerateContentResponse:
+        text_part = Part.from_text(text=self.prompt)
         raw_response = self.client.models.generate_content(
             model=self.model_name,
             config=GenerateContentConfig(
@@ -134,11 +124,9 @@ class GeminiExtractor(BaseExtractor):
     def format(self, price_json: dict) -> np.ndarray:
         pass
 
-    def __call__(
-        self, img_input: Union[str, Path, bytes], custom_prompt: str = None
-    ) -> dict:
+    def __call__(self, img_input: Union[str, Path, bytes]) -> dict:
         img_input = self._route_input(img_input)
-        raw_response = self._api_call(img_input, custom_prompt)
+        raw_response = self._api_call(img_input)
         output = json.loads(raw_response.text.replace("'", '"'))
 
         return output
@@ -157,11 +145,9 @@ class GPTExtractor(BaseExtractor):
 
     @classmethod
     def get_openai_client(cls):
-        """Get OpenAI client with API key from environment"""
         return OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
     def _route_input(self, img_input: Union[str, Path, bytes]) -> str:
-        """Convert image input to base64 encoded string for OpenAI API"""
         if isinstance(img_input, (str, Path)):
             with open(img_input, "rb") as image_file:
                 return base64.b64encode(image_file.read()).decode("utf-8")
@@ -170,22 +156,14 @@ class GPTExtractor(BaseExtractor):
         else:
             raise TypeError("img_input must be str, Path, or bytes")
 
-    def _api_call(self, img_input: str, custom_prompt: str = None) -> dict:
-        """
-        Make API call to OpenAI with image and text prompt.
-
-        Args:
-            img_input: Base64 encoded image string
-            prompt: Prompt to use (defaults to self.prompt if None)
-        """
-        text_content = custom_prompt if custom_prompt is not None else self.prompt
+    def _api_call(self, img_input: str) -> dict:
         response = self.client.chat.completions.create(
             model=self.model_name,
             messages=[
                 {
                     "role": "user",
                     "content": [
-                        {"type": "text", "text": text_content},
+                        {"type": "text", "text": self.prompt},
                         {
                             "type": "image_url",
                             "image_url": {"url": f"data:image/jpeg;base64,{img_input}"},
@@ -201,11 +179,9 @@ class GPTExtractor(BaseExtractor):
     def format(self, price_json: dict) -> np.ndarray:
         pass
 
-    def __call__(
-        self, img_input: Union[str, Path, bytes], custom_prompt: str = None
-    ) -> dict:
+    def __call__(self, img_input: Union[str, Path, bytes]) -> dict:
         img_b64 = self._route_input(img_input)
-        raw_response = self._api_call(img_b64, custom_prompt)
+        raw_response = self._api_call(img_b64)
 
         # Extract content from OpenAI response
         response_text = raw_response.choices[0].message.content

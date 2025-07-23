@@ -11,11 +11,11 @@ from price_net.schema import PriceBuilder
 class GeminiAttributionExtractor(GeminiExtractor):
     """Extractor for end-to-end price attribution using Gemini"""
 
-    def __init__(self, model_name: str, client, prompt: str, temperature: float = 0.1):
+    def __init__(self, model_name: str, client, prompt: str, temperature: float = 0.0):
         super().__init__(model_name, client, prompt, temperature)
 
     def __call__(
-        self, img_input: Union[str, Path, bytes], products: List[tuple], scene_id: str
+        self, img_input: Union[str, Path, bytes], scene_id: str
     ) -> List[PriceAttribution]:
         """
         Extract price attributions for products in an image.
@@ -28,13 +28,10 @@ class GeminiAttributionExtractor(GeminiExtractor):
         Returns:
             List of PriceAttribution objects
         """
-        # Build the full prompt with products
-        products_text = f"\nProducts to analyze:\n{products}\n"
-        custom_prompt = self.prompt + products_text
 
         try:
             # Make API call using parent class __call__ method
-            response_data = super().__call__(img_input, custom_prompt)
+            response_data = super().__call__(img_input)
 
             if not isinstance(response_data, list):
                 print(f"  ⚠️ Unexpected response format: {type(response_data)}")
@@ -64,11 +61,11 @@ class GeminiAttributionExtractor(GeminiExtractor):
 class GPTAttributionExtractor(GPTExtractor):
     """Extractor for end-to-end price attribution using OpenAI GPT"""
 
-    def __init__(self, model_name: str, client, prompt: str, temperature: float = 0.1):
+    def __init__(self, model_name: str, client, prompt: str, temperature: float = 0.0):
         super().__init__(model_name, client, prompt, temperature)
 
     def __call__(
-        self, img_input: Union[str, Path, bytes], products: List[tuple], scene_id: str
+        self, img_input: Union[str, Path, bytes], scene_id: str
     ) -> List[PriceAttribution]:
         """
         Extract price attributions for products in an image.
@@ -81,12 +78,10 @@ class GPTAttributionExtractor(GPTExtractor):
         Returns:
             List of PriceAttribution objects
         """
-        # Build the full prompt with products
-        full_prompt = self.prompt + f"\nProducts to analyze:\n{products}\n"
 
         try:
             # Make simple API call with prompt and image using parent class __call__
-            response_data = super().__call__(img_input, full_prompt)
+            response_data = super().__call__(img_input)
 
             if not isinstance(response_data, list):
                 print(f"  ⚠️ Unexpected response format: {type(response_data)}")
@@ -125,7 +120,7 @@ def create_gemini_attribution_extractor(
         model_name=cfg["model_name"],
         client=client,
         prompt=prompt,
-        temperature=cfg.get("temperature", 0.1),
+        temperature=cfg.get("temperature", 0.0),
     )
 
 
@@ -141,5 +136,5 @@ def create_gpt_attribution_extractor(
         model_name=cfg["model_name"],
         client=client,
         prompt=prompt,
-        temperature=cfg.get("temperature", 0.1),
+        temperature=cfg.get("temperature", 0.0),
     )

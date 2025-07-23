@@ -49,6 +49,11 @@ def save_attributions_to_file(new_attributions, all_attributions, output_path):
                 f"Warning: Could not read existing file, replacing with all_attributions: {e}"
             )
             existing_data = all_attributions
+    else:
+        existing_data = all_attributions
+        print(
+            f"  🆕 No existing file, starting with {len(new_attributions)} new attributions"
+        )
 
     # Ensure output directory exists
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -56,6 +61,8 @@ def save_attributions_to_file(new_attributions, all_attributions, output_path):
     # Write the combined data back to file
     with open(output_path, "w") as f:
         json.dump(existing_data, f, indent=2)
+
+    print(f"  ✅ Successfully saved data to {output_path}")
 
 
 if __name__ == "__main__":
@@ -106,9 +113,6 @@ if __name__ == "__main__":
     for i in tqdm(range(len(scenes)), desc="Processing scenes", unit="scene"):
         scene = scenes[i]
 
-        # Get products for this scene
-        products = get_products_from_scene(scene, upc_to_product_name)
-
         # Get image path
         image_path = config.dataset_dir / "images" / f"{scene.scene_id}.jpg"
 
@@ -119,10 +123,11 @@ if __name__ == "__main__":
 
         # Extract attributions
         try:
-            attributions = extractor(image_path, products, scene.scene_id)
+            attributions = extractor(image_path, scene.scene_id)
 
             # Convert to dicts and add to collections
             attribution_dicts = [attr.model_dump() for attr in attributions]
+
             all_attributions.extend(attribution_dicts)
             new_attributions_since_save.extend(attribution_dicts)
 
