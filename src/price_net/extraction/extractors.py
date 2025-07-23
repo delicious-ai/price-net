@@ -82,6 +82,21 @@ class BaseExtractor(ABC):
         cfg = cls.read_yaml(model_config)
         return cls.from_dict(cfg)
 
+    @staticmethod
+    def normalize_price(price: str) -> float:
+        """
+        If the input price is a three-digit number without a decimal
+        (e.g., 368 or 368.0), convert it to a float and divide by 100.
+        Otherwise, return the price unchanged.
+        """
+        try:
+            price = float(price)
+            if price.is_integer() and 100 <= price < 1000:
+                return price / 100
+            return price
+        except (ValueError, TypeError):
+            return price  # or raise an error depending on your needs
+
 
 class GeminiExtractor(BaseExtractor):
 
