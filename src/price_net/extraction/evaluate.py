@@ -2,6 +2,7 @@ import os
 import pandas as pd
 from pathlib import Path
 from tqdm import tqdm
+import argparse
 
 from price_net.enums import PriceType
 
@@ -31,7 +32,7 @@ class ExtractionEvaluation(object):
 
 
     def _read_price_boxes(self, price_box_fpath: Path) -> pd.DataFrame:
-        df = pd.read_csv(price_box_fpath)
+        df = pd.read_csv(price_box_fpath).head(10)
         df = df[~(pd.isnull(df[self.price_contents_col]) & pd.isnull(df[self.price_type_col]))]
         return df
 
@@ -149,12 +150,27 @@ class ExtractionEvaluation(object):
         print("mIoU Bigram: ", np.mean(iou_bigrams_arr))
 
 
-
+def parse_args():
+    parser = argparse.ArgumentParser(description="Evaluate price extraction model.")
+    parser.add_argument(
+        "--extractor-cfg",
+        type=str,
+        required=True,
+        help="Path to the extractor config YAML file."
+    )
+    parser.add_argument(
+        "--dataset-dir",
+        type=str,
+        required=True,
+        help="Path to the dataset directory."
+    )
+    return parser.parse_args()
 
 if __name__ == "__main__":
+    args = parse_args()
     cfg = ExtractionEvaluationConfig(
-        extractor_config_path=Path("configs/eval/extractors/base-gemini.yaml"),
-        dataset_dir=Path("/Users/porterjenkins/data/price-attribution-scenes/test"),
+        extractor_config_path=Path(args.extractor_cfg),
+        dataset_dir=Path(args.dataset_dir),
         cacheing=False,
     )
     evaluator = ExtractionEvaluation(cfg)
