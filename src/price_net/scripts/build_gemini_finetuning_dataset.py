@@ -142,7 +142,7 @@ def main(dataset_dir: Path, prompt_path: Path, upload_images: bool, val_prob: fl
 
     write_and_upload_jsonl(val_contents, Path(FILENAME), GCS_BUCKET, f"{GCS_DIR}/val/{FILENAME}")
     if val_contents:
-        write_and_upload_jsonl(val_contents, Path(FILENAME), GCS_BUCKET, f"{GCS_DIR}/train/{FILENAME}")
+        write_and_upload_jsonl(trn_contents, Path(FILENAME), GCS_BUCKET, f"{GCS_DIR}/train/{FILENAME}")
 
 
 if __name__ == "__main__":
