@@ -39,10 +39,6 @@ def upload_to_gcs(local_file_path: str, bucket_name: str, destination_blob_path:
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
     blob = bucket.blob(destination_blob_path)
-
-    if blob.exists():
-        return
-
     blob.upload_from_filename(local_file_path)
 
 
@@ -111,6 +107,8 @@ def main(dataset_dir: Path, prompt_path: Path, upload_images: bool, val_prob: fl
         if upload_images:
             upload_to_gcs(local_img_path, GCS_BUCKET, img_bucket_path)
 
+        img_uri = f"gs://{GCS_BUCKET}/{img_bucket_path}"
+
         item = {
             "contents": [
                 {
@@ -119,7 +117,7 @@ def main(dataset_dir: Path, prompt_path: Path, upload_images: bool, val_prob: fl
                         {
                             "fileData": {
                                 "mimeType": "image/jpeg",
-                                "fileUri": f"gs://{GCS_BUCKET}/{img_bucket_path}",
+                                "fileUri": img_uri,
                             }
                         },
                         {"text": prompt},
