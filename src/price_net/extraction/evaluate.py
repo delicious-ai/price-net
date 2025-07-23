@@ -3,6 +3,7 @@ import pandas as pd
 from pathlib import Path
 from tqdm import tqdm
 import argparse
+import json
 
 from price_net.enums import PriceType
 
@@ -19,7 +20,18 @@ class ExtractionEvaluation(object):
     price_bbox_id_col = "price_bbox_id"
     img_format = ".jpg"
 
-    def __init__(self, cfg: ExtractionEvaluationConfig):
+    def __init__(
+            self,
+            cfg: ExtractionEvaluationConfig,
+            cache_dir: Path | None = None,
+            exp_name: str | None = None,
+            use_cache: bool = True
+    ):
+        self.exp_name = exp_name
+        self.cache_dir = self._build_cache_dir(cache_dir)
+        self.cache_path = self.cache_dir / f"{self.exp_name}.json"
+        self.use_cache = use_cache
+
         factory = ExtractorFactory(cfg.extractor_config_path)
         self.extractor = factory.build()
 
@@ -29,6 +41,18 @@ class ExtractionEvaluation(object):
 
         if not os.path.exists(self.price_img_dir):
             raise RuntimeError(f"Price boxes directory {self.price_img_dir} does not exist. Try running script: build_extraction_dataset.py")
+
+    @staticmethod
+    def _build_cache_dir(cache_dir: Path | None = None) -> Path:
+
+        if cache_dir is None:
+            script_dir = Path(__file__).resolve().parent
+            cache_dir = script_dir / "cache"
+
+        cache_dir.mkdir(parents=True, exist_ok=True)
+
+        return cache_dir
+
 
 
     def _read_price_boxes(self, price_box_fpath: Path) -> pd.DataFrame:
@@ -122,6 +146,11 @@ class ExtractionEvaluation(object):
         price_is_correct = []
         type_is_correct = []
 
+        if self.use_cache and self.cache_path.exists():
+            with open(self.cache_path, "r") as f:
+                cached_outputs = json.load(f)
+        else:
+            cached_outputs = {}
 
 
         for i, row in tqdm(self.price_boxes.iterrows(), total=len(self.price_boxes)):
@@ -129,7 +158,14 @@ class ExtractionEvaluation(object):
             ground_truth_price, gt_price_str = self._parse_price(row[self.price_contents_col], ground_truth_price_type)
             fname = row[self.price_bbox_id_col] + self.img_format
             img_path = self.price_img_dir / fname
-            raw_output = self.extractor(img_path)
+
+            if fname in cached_outputs:
+                raw_output = cached_outputs[fname]
+            else:
+                raw_output = self.extractor(img_path)
+                cached_outputs[fname] = raw_output
+
+
             pred_price_type, pred_price = self.extractor.format(raw_output)
 
             _, pred_price_str = self.extractor.format_as_str(raw_output)
@@ -149,6 +185,10 @@ class ExtractionEvaluation(object):
         print("mIoU: ", np.mean(iou_arr))
         print("mIoU Bigram: ", np.mean(iou_bigrams_arr))
 
+        if self.use_cache:
+            with open(self.cache_path, "w") as f:
+                json.dump(cached_outputs, f)
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Evaluate price extraction model.")
@@ -164,6 +204,11 @@ def parse_args():
         required=True,
         help="Path to the dataset directory."
     )
+    parser.add_argument(
+        "--exp-name",
+        type=str,
+        help="Name of experiment"
+    )
     return parser.parse_args()
 
 if __name__ == "__main__":
@@ -173,5 +218,8 @@ if __name__ == "__main__":
         dataset_dir=Path(args.dataset_dir),
         cacheing=False,
     )
-    evaluator = ExtractionEvaluation(cfg)
+    evaluator = ExtractionEvaluation(
+        cfg = cfg,
+        exp_name = args.exp_name
+    )
     evaluator.eval()
