@@ -178,6 +178,10 @@ class ExtractionEvaluation(object):
             iou_bigram = self.get_iou_bigrams(pred_price_str.lower(), gt_price_str.lower())
             iou_bigrams_arr.append(iou_bigram)
 
+            if self.use_cache:
+                with open(self.cache_path, "w") as f:
+                    json.dump(cached_outputs, f)
+
 
 
         print("Price Accuracy: ", np.mean(price_is_correct))
@@ -185,9 +189,7 @@ class ExtractionEvaluation(object):
         print("mIoU: ", np.mean(iou_arr))
         print("mIoU Bigram: ", np.mean(iou_bigrams_arr))
 
-        if self.use_cache:
-            with open(self.cache_path, "w") as f:
-                json.dump(cached_outputs, f)
+
 
 
 def parse_args():
