@@ -154,7 +154,6 @@ class GeminiExtractor(BaseExtractor):
 
     def format(self, price_json: dict) -> Tuple[PriceType, Tuple]:
         price_type = PriceType(price_json["price_type"])
-
         if price_type == PriceType.STANDARD:
             price = (price_json["amount"],)
         elif price_type == PriceType.BULK_OFFER:
