@@ -186,7 +186,7 @@ class GeminiExtractor(BaseExtractor):
         elif price_type == PriceType.BULK_OFFER:
             price = f"{price_json['quantity']} / ${float(price_json['total_price']):.2f}"
         elif price_type == PriceType.BUY_X_GET_Y_FOR_Z:
-            price = f"Buy {price_json['buy_quantity']}, Get {price_json['get_quantity']} / ${float(price_json['get_price']):.2f} "
+            price = f"Buy {price_json['buy_quantity']}, Get {price_json['get_quantity']} / ${float(price_json['get_price']):.2f}"
 
         elif price_type == PriceType.UNKNOWN:
             price = "Unreadable"

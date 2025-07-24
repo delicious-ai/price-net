@@ -62,6 +62,7 @@ class ExtractionEvaluation(object):
     def _read_price_boxes(self, price_box_fpath: Path) -> pd.DataFrame:
         df = pd.read_csv(price_box_fpath)
         df = df[~(pd.isnull(df[self.price_contents_col]) & pd.isnull(df[self.price_type_col]))]
+        #df = df[df[self.price_type_col] == "BUY_X_GET_Y"]
         return df
 
     def _price_type_string_to_enum(self, price_type: str) -> PriceType:
