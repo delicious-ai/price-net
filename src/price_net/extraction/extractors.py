@@ -1,3 +1,5 @@
+from json import JSONDecodeError
+
 import numpy as np
 from dotenv import load_dotenv
 load_dotenv()
@@ -102,11 +104,12 @@ class GeminiExtractor(BaseExtractor):
 
     mime_type = "image/jpeg"
 
-    def __init__(self, model_name: str, client: genai.Client, prompt: str, temperature: float):
+    def __init__(self, model_name: str, client: genai.Client, prompt: str, temperature: float, max_retries: int=5):
         self.model_name = model_name
         self.client = client
         self.prompt = prompt
         self.temperature = temperature
+        self.max_retries = max_retries
 
 
     @classmethod
@@ -200,10 +203,15 @@ class GeminiExtractor(BaseExtractor):
     def __call__(self, img_input: Union[str, Path, bytes]) -> Dict:
 
         img_input = self._route_input(img_input)
-        raw_response = self._api_call(img_input)
-        output = json.loads(raw_response.text.replace("'", '"'))
+        for attempt in range(self.max_retries):
+            try:
+                raw_response = self._api_call(img_input)
+                output = json.loads(raw_response.text.replace("'", '"'))
+                return output
+            except JSONDecodeError:
+                print(f"[Attempt {attempt + 1}] JSON decode error")
 
-        return output
+        raise RuntimeError(f"Extractor failed after {self.max_retries} attempts")
 
     @classmethod
     def from_dict(cls, cfg: dict):
