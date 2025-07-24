@@ -1,15 +1,15 @@
 {
   "overall": {
-    "price_accuracy": 0.7835149218379914,
-    "mean_iou": 0.7943628612032213,
-    "mean_iou_bigram": 0.8256486940059531,
+    "price_accuracy": 0.792515395547134,
+    "mean_iou": 0.8033633349123639,
+    "mean_iou_bigram": 0.8321603490964808,
     "price_type_accuracy": 0.8744670772145903
   },
   "stratified": {
     "BULK_OFFER": {
       "price_is_correct": 0.817629179331307,
       "iou_words": 0.8475177304964538,
-      "iou_bigrams": 0.8673373907416461,
+      "iou_bigrams": 0.8648505159143458,
       "type_is_correct": 0.8693009118541033
     },
     "BUY_X_GET_Y_FOR_Z": {
@@ -19,9 +19,9 @@
       "type_is_correct": 0.9534883720930233
     },
     "STANDARD": {
-      "price_is_correct": 0.7706302794022092,
-      "iou_words": 0.774528914879792,
-      "iou_bigrams": 0.812756217142182,
+      "price_is_correct": 0.7829759584145549,
+      "iou_words": 0.7868745938921378,
+      "iou_bigrams": 0.8222196906407432,
       "type_is_correct": 0.8784925276153346
     },
     "UNKNOWN": {

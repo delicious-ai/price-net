@@ -85,19 +85,18 @@ class BaseExtractor(ABC):
         return cls.from_dict(cfg)
 
     @staticmethod
-    def normalize_price(price: str) -> float:
+    def normalize_price(price: float) -> float:
         """
         If the input price is a three-digit number without a decimal
         (e.g., 368 or 368.0), convert it to a float and divide by 100.
         Otherwise, return the price unchanged.
         """
         try:
-            price = float(price)
-            if price.is_integer() and 100 <= price < 1000:
+            if 100 <= price < 1000:
                 return price / 100
             return price
         except (ValueError, TypeError):
-            return price  # or raise an error depending on your needs
+            return price
 
 
 class GeminiExtractor(BaseExtractor):
@@ -158,45 +157,51 @@ class GeminiExtractor(BaseExtractor):
     def format(self, price_json: dict) -> Tuple[PriceType, Tuple]:
         price_type = PriceType(price_json["price_type"])
         if price_type == PriceType.STANDARD:
-            price = (price_json["amount"],)
+            price = self.normalize_price(float(price_json["amount"]))
+            output = (price,)
         elif price_type == PriceType.BULK_OFFER:
-            price = (
+            price = self.normalize_price(float(price_json["total_price"]))
+            output = (
                 int(price_json["quantity"]),
-                int(price_json["total_price"])
+                price
             )
         elif price_type == PriceType.BUY_X_GET_Y_FOR_Z:
-            price = (
+            price = self.normalize_price(float(price_json["get_price"]))
+            output = (
                 int(price_json["buy_quantity"]),
                 int(price_json["get_quantity"]),
-                price_json["get_price"]
+                price
             )
         elif price_type == PriceType.UNKNOWN:
-            price = (np.nan,)
+            output = (np.nan,)
         elif price_type == PriceType.MISC:
-            price = (np.nan, price_json["contents"])
+            output = (np.nan, price_json["contents"])
         else:
             raise ValueError(f"Unknown price type: {price_type}")
 
-        return price_type, price
+        return price_type, output
 
     def format_as_str(self, price_json: dict) -> str:
-        price_type = PriceType(price_json["price_type"])
+        # TODO: consider creating PriceType classes with __str__ method. Avoid big if/else
+        price_type, price = self.format(price_json)
         if price_type == PriceType.STANDARD:
-            price = f"${float(price_json['amount']):.2f}"
+            output = f"${price[0]:.2f}"
         elif price_type == PriceType.BULK_OFFER:
-            price = f"{int(price_json['quantity'])} / ${float(price_json['total_price']):.2f}"
+            quantity, total_price = price
+            output = f"{int(quantity)} / ${total_price:.2f}"
         elif price_type == PriceType.BUY_X_GET_Y_FOR_Z:
-            price = f"Buy {int(price_json['buy_quantity'])}, Get {int(price_json['get_quantity'])} / ${float(price_json['get_price']):.2f}"
+            buy_quantity, get_quantity, get_price = price
+            output = f"Buy {int(buy_quantity)}, Get {int(get_quantity)} / ${get_price:.2f}"
 
         elif price_type == PriceType.UNKNOWN:
-            price = "Unreadable"
+            output = "Unreadable"
 
         elif price_type == PriceType.MISC:
-            price = price_json["contents"]
+            output = price_json["contents"]
         else:
             raise ValueError(f"Unknown price type: {price_type}")
 
-        return price_type, price
+        return price_type, output
 
 
 

@@ -2,14 +2,14 @@
   "overall": {
     "price_accuracy": 0.793462813832307,
     "mean_iou": 0.8017260017733726,
-    "mean_iou_bigram": 0.8342605668954195,
+    "mean_iou_bigram": 0.8338442770428436,
     "price_type_accuracy": 0.8872572240644244
   },
   "stratified": {
     "BULK_OFFER": {
       "price_is_correct": 0.8601823708206687,
       "iou_words": 0.883485309017224,
-      "iou_bigrams": 0.9036228546866845,
+      "iou_bigrams": 0.9009517669092137,
       "type_is_correct": 0.9240121580547113
     },
     "BUY_X_GET_Y_FOR_Z": {
