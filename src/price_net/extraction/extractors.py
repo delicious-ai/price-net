@@ -161,13 +161,13 @@ class GeminiExtractor(BaseExtractor):
             price = (price_json["amount"],)
         elif price_type == PriceType.BULK_OFFER:
             price = (
-                price_json["quantity"],
-                price_json["total_price"]
+                int(price_json["quantity"]),
+                int(price_json["total_price"])
             )
         elif price_type == PriceType.BUY_X_GET_Y_FOR_Z:
             price = (
-                price_json["buy_quantity"],
-                price_json["get_quantity"],
+                int(price_json["buy_quantity"]),
+                int(price_json["get_quantity"]),
                 price_json["get_price"]
             )
         elif price_type == PriceType.UNKNOWN:
@@ -184,9 +184,9 @@ class GeminiExtractor(BaseExtractor):
         if price_type == PriceType.STANDARD:
             price = f"${float(price_json['amount']):.2f}"
         elif price_type == PriceType.BULK_OFFER:
-            price = f"{price_json['quantity']} / ${float(price_json['total_price']):.2f}"
+            price = f"{int(price_json['quantity'])} / ${float(price_json['total_price']):.2f}"
         elif price_type == PriceType.BUY_X_GET_Y_FOR_Z:
-            price = f"Buy {price_json['buy_quantity']}, Get {price_json['get_quantity']} / ${float(price_json['get_price']):.2f}"
+            price = f"Buy {int(price_json['buy_quantity'])}, Get {int(price_json['get_quantity'])} / ${float(price_json['get_price']):.2f}"
 
         elif price_type == PriceType.UNKNOWN:
             price = "Unreadable"
