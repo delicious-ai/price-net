@@ -1,18 +1,20 @@
-import os
-import pandas as pd
-from pathlib import Path
-from tqdm import tqdm
 import argparse
 import json
+import os
+from pathlib import Path
 
+import pandas as pd
 from price_net.enums import PriceType
-
 from price_net.extraction.configs import ExtractionEvaluationConfig
 from price_net.extraction.factory import ExtractorFactory
-from price_net.extraction.parsers import *
+from price_net.extraction.parsers import parse_bulk_offer_price
+from price_net.extraction.parsers import parse_buy_x_get_y_price
+from price_net.extraction.parsers import parse_regular_price
+from price_net.extraction.parsers import parse_unreadable_price
+from tqdm import tqdm
+
 
 class ExtractionEvaluation(object):
-
     price_box_fpath = "price_boxes.csv"
     price_type_col = "price_type"
     price_contents_col = "price_contents"
@@ -21,12 +23,12 @@ class ExtractionEvaluation(object):
     img_format = ".jpg"
 
     def __init__(
-            self,
-            cfg: ExtractionEvaluationConfig,
-            result_dir: Path,
-            cache_dir: Path | None = None,
-            exp_name: str | None = None,
-            use_cache: bool = True
+        self,
+        cfg: ExtractionEvaluationConfig,
+        result_dir: Path,
+        cache_dir: Path | None = None,
+        exp_name: str | None = None,
+        use_cache: bool = True,
     ):
         self.exp_name = exp_name
         self.result_dir = result_dir
@@ -44,11 +46,12 @@ class ExtractionEvaluation(object):
         self.price_boxes = self._read_price_boxes(self.root_dir / self.price_box_fpath)
 
         if not os.path.exists(self.price_img_dir):
-            raise RuntimeError(f"Price boxes directory {self.price_img_dir} does not exist. Try running script: build_extraction_dataset.py")
+            raise RuntimeError(
+                f"Price boxes directory {self.price_img_dir} does not exist. Try running script: build_extraction_dataset.py"
+            )
 
     @staticmethod
     def _build_cache_dir(cache_dir: Path | None = None) -> Path:
-
         if cache_dir is None:
             script_dir = Path(__file__).resolve().parent
             cache_dir = script_dir / "cache"
@@ -57,11 +60,14 @@ class ExtractionEvaluation(object):
 
         return cache_dir
 
-
-
     def _read_price_boxes(self, price_box_fpath: Path) -> pd.DataFrame:
         df = pd.read_csv(price_box_fpath)
-        df = df[~(pd.isnull(df[self.price_contents_col]) & pd.isnull(df[self.price_type_col]))]
+        df = df[
+            ~(
+                pd.isnull(df[self.price_contents_col])
+                & pd.isnull(df[self.price_type_col])
+            )
+        ]
         return df
 
     def _price_type_string_to_enum(self, price_type: str) -> PriceType:
@@ -87,7 +93,6 @@ class ExtractionEvaluation(object):
             return PriceType(price_type)
 
     def _parse_price(self, price_contents: str, price_type: PriceType) -> pd.DataFrame:
-
         if price_type == PriceType.STANDARD:
             return parse_regular_price(price_contents)
         elif price_type == PriceType.BULK_OFFER:
@@ -102,13 +107,12 @@ class ExtractionEvaluation(object):
     @staticmethod
     def get_iou_words(str1: str, str2: str) -> float:
         """
-            Compute the Jaccard index between two strings based on word tokens,
-            after removing '/' and ','.
+        Compute the Jaccard index between two strings based on word tokens,
+        after removing '/' and ','.
         """
         for ch in ["/", ","]:
             str1 = str1.replace(ch, "")
             str2 = str2.replace(ch, "")
-
 
         set1 = set(str1.split())
         set2 = set(str2.split())
@@ -116,7 +120,6 @@ class ExtractionEvaluation(object):
         union = set1.union(set2)
         iou = len(intersection) / len(union) if union else 1.0
         return iou
-
 
     @staticmethod
     def get_iou_bigrams(s1: str, s2: str) -> float:
@@ -133,7 +136,7 @@ class ExtractionEvaluation(object):
 
         def get_bigrams(s: str) -> set:
             s = s.lower().strip()
-            return {s[i:i + 2] for i in range(len(s) - 1)} if len(s) >= 2 else set()
+            return {s[i : i + 2] for i in range(len(s) - 1)} if len(s) >= 2 else set()
 
         bigrams1 = get_bigrams(s1)
         bigrams2 = get_bigrams(s2)
@@ -144,7 +147,6 @@ class ExtractionEvaluation(object):
         return len(intersection) / len(union) if union else 1.0
 
     def eval(self):
-
         """iou_arr = []
         iou_bigrams_arr = []
         price_is_correct = []
@@ -159,10 +161,13 @@ class ExtractionEvaluation(object):
         else:
             cached_outputs = {}
 
-
         for i, row in tqdm(self.price_boxes.iterrows(), total=len(self.price_boxes)):
-            ground_truth_price_type = self._price_type_string_to_enum(row[self.price_type_col])
-            ground_truth_price, gt_price_str = self._parse_price(row[self.price_contents_col], ground_truth_price_type)
+            ground_truth_price_type = self._price_type_string_to_enum(
+                row[self.price_type_col]
+            )
+            ground_truth_price, gt_price_str = self._parse_price(
+                row[self.price_contents_col], ground_truth_price_type
+            )
             fname = row[self.price_bbox_id_col] + self.img_format
             img_path = self.price_img_dir / fname
 
@@ -172,7 +177,6 @@ class ExtractionEvaluation(object):
                 raw_output = self.extractor(img_path)
                 cached_outputs[fname] = raw_output
 
-
             pred_price_type, pred_price = self.extractor.format(raw_output)
 
             _, pred_price_str = self.extractor.format_as_str(raw_output)
@@ -181,14 +185,16 @@ class ExtractionEvaluation(object):
             type_is_correct = pred_price_type == ground_truth_price_type
 
             iou = self.get_iou_words(pred_price_str.lower(), gt_price_str.lower())
-            iou_bigram = self.get_iou_bigrams(pred_price_str.lower(), gt_price_str.lower())
+            iou_bigram = self.get_iou_bigrams(
+                pred_price_str.lower(), gt_price_str.lower()
+            )
 
             results_row = {
                 "price_type": ground_truth_price_type.value,
                 "price_is_correct": price_is_correct,
                 "iou_words": iou,
                 "iou_bigrams": iou_bigram,
-                "type_is_correct": type_is_correct
+                "type_is_correct": type_is_correct,
             }
 
             results.append(results_row)
@@ -201,24 +207,18 @@ class ExtractionEvaluation(object):
         stratified = results.groupby("price_type").mean()
 
         statistics = {
-            "overall":
-                {
-                    "price_accuracy": results.price_is_correct.mean(),
-                    "mean_iou": results.iou_words.mean(),
-                    "mean_iou_bigram": results.iou_bigrams.mean(),
-                    "price_type_accuracy": results.type_is_correct.mean(),
+            "overall": {
+                "price_accuracy": results.price_is_correct.mean(),
+                "mean_iou": results.iou_words.mean(),
+                "mean_iou_bigram": results.iou_bigrams.mean(),
+                "price_type_accuracy": results.type_is_correct.mean(),
             },
-            "stratified": stratified.to_dict(orient="index")
+            "stratified": stratified.to_dict(orient="index"),
         }
-
 
         print(json.dumps(statistics, indent=2))
         with open(self.results_path, "w") as f:
             json.dump(statistics, f, indent=2)
-
-
-
-
 
 
 def parse_args():
@@ -227,25 +227,15 @@ def parse_args():
         "--extractor-cfg",
         type=str,
         required=True,
-        help="Path to the extractor config YAML file."
+        help="Path to the extractor config YAML file.",
     )
     parser.add_argument(
-        "--dataset-dir",
-        type=str,
-        required=True,
-        help="Path to the dataset directory."
+        "--dataset-dir", type=str, required=True, help="Path to the dataset directory."
     )
-    parser.add_argument(
-        "--exp-name",
-        type=str,
-        help="Name of experiment"
-    )
-    parser.add_argument(
-        "--results-dir",
-        type=str,
-        default="results/extraction"
-    )
+    parser.add_argument("--exp-name", type=str, help="Name of experiment")
+    parser.add_argument("--results-dir", type=str, default="results/extraction")
     return parser.parse_args()
+
 
 if __name__ == "__main__":
     args = parse_args()
@@ -255,8 +245,6 @@ if __name__ == "__main__":
         cacheing=False,
     )
     evaluator = ExtractionEvaluation(
-        cfg = cfg,
-        exp_name = args.exp_name,
-        result_dir = Path(args.results_dir)
+        cfg=cfg, exp_name=args.exp_name, result_dir=Path(args.results_dir)
     )
     evaluator.eval()

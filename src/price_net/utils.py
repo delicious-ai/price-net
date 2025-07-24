@@ -1,3 +1,4 @@
+import ast
 import os
 import random
 from typing import Sequence
@@ -42,8 +43,11 @@ def parse_bboxes(
     return bbox_tensor, ids, id_to_idx
 
 
+PriceAssociationDatasetItem = tuple[torch.Tensor, torch.Tensor, str]
+
+
 def marginal_prediction_collate_fn(
-    batch: list[tuple[torch.Tensor, torch.Tensor, str]],
+    batch: list[PriceAssociationDatasetItem],
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """Organize a batch of potential prod-price associations (grouped by scene ID) into concatenated tensors.
 
@@ -51,7 +55,7 @@ def marginal_prediction_collate_fn(
     of whether/not they are actual edges, and the scene ID.
 
     Args:
-        batch (list[tuple[torch.Tensor, torch.Tensor, str]]): A list of B tuples, each with an (N_i, D) tensor of associations and an (N_i,) label.
+        batch (list[PriceAssociationDatasetItem]): A list of B tuples, each with an (N_i, D) tensor of associations, an (N_i,) label, and a scene id.
 
     Returns:
         tuple[torch.Tensor, torch.Tensor, torch.Tensor]: A (Σ N_i, D) input tensor, with corresponding (Σ N_i,) labels.
@@ -61,7 +65,7 @@ def marginal_prediction_collate_fn(
 
 
 def joint_prediction_collate_fn(
-    batch: list[tuple[torch.Tensor, torch.Tensor, str]],
+    batch: list[PriceAssociationDatasetItem],
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """Organize a (potentially jagged) batch of scene-grouped prod-price edges into a zero-padded tensor with uniform sequence length.
 
@@ -69,7 +73,7 @@ def joint_prediction_collate_fn(
     of whether/not they are actual edges, and the scene ID.
 
     Args:
-        batch (list[tuple[torch.Tensor, torch.Tensor]]): A list of B tuples, each with an (N_i, D) input sequence and an (N_i,) label.
+        batch (list[PriceAssociationDatasetItem]): A list of B tuples, each with an (N_i, D) tensor of associations, an (N_i,) label, and a scene id.
 
     Returns:
         tuple[torch.Tensor, torch.Tensor, torch.Tensor]: A zero-padded (B, N, D) input sequence tensor, with corresponding (B, N) labels and a (B, N) mask indicating if a specific token / label is zero-padded.
@@ -221,7 +225,30 @@ def seed_everything(seed: int):
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
+    torch.use_deterministic_algorithms(True)
     os.environ["PYTHONHASHSEED"] = str(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     L.seed_everything(seed, workers=True)
+
+
+def parse_unknown_args(unknown_args: list[str]):
+    it = iter(unknown_args)
+    kwargs = {}
+    for key in it:
+        if not key.startswith("--"):
+            raise ValueError(f"Unexpected argument format: {key}")
+        key = key[2:].replace("-", "_")
+        value = next(it)
+        try:
+            value = ast.literal_eval(value)
+        except Exception:
+            pass
+        kwargs[key] = value
+    return kwargs
+
+
+def seed_worker(worker_id):
+    worker_seed = torch.initial_seed() % 2**32
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)

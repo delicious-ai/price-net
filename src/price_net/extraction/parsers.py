@@ -1,8 +1,4 @@
 from typing import Tuple
-from pathlib import Path
-import json
-
-import numpy as np
 
 
 def parse_regular_price(price_contents: str) -> Tuple[Tuple[float], str]:
@@ -53,7 +49,9 @@ def parse_unreadable_price(price_contents: str) -> Tuple[Tuple, str]:
     return (), price_contents
 
 
-def parse_buy_x_get_y_price(price_contents: str) -> Tuple[Tuple[float, float, float], str]:
+def parse_buy_x_get_y_price(
+    price_contents: str,
+) -> Tuple[Tuple[float, float, float], str]:
     """
     Parses a string representing a "Buy X Get Y for Z" price structure and converts
     the numeric values into a PyTorch tensor.
@@ -85,13 +83,12 @@ def parse_buy_x_get_y_price(price_contents: str) -> Tuple[Tuple[float, float, fl
     price = f"Buy {int(output[0])}, Get {int(output[1])} / ${output[2]:.2f}"
     return output, price
 
+
 def parse_generic_price(price_contents: str) -> tuple:
     pass
 
 
-
 if __name__ == "__main__":
-
     print(parse_regular_price(price_contents="$4.99"))
     print(parse_bulk_offer_price(price_contents="5 / $40"))
     print(parse_unreadable_price("Unreadable"))

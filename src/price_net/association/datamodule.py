@@ -12,6 +12,7 @@ from price_net.enums import Aggregation
 from price_net.enums import PredictionStrategy
 from price_net.utils import joint_prediction_collate_fn
 from price_net.utils import marginal_prediction_collate_fn
+from price_net.utils import seed_worker
 from price_net.utils import split_bboxes
 from torch.utils.data import DataLoader
 
@@ -45,6 +46,8 @@ class PriceAssociationDataModule(L.LightningDataModule):
         self.featurization_config = featurization_config
         self.transform = self._get_transform()
         self.collate_fn = self._get_collate_fn()
+        self.gen = torch.Generator()
+        self.gen.manual_seed(0)
 
     def setup(self, stage: Literal["fit", "validate", "test", "predict"]):
         if stage == "fit":
@@ -74,6 +77,8 @@ class PriceAssociationDataModule(L.LightningDataModule):
             persistent_workers=self.num_workers > 0,
             shuffle=True,
             collate_fn=self.collate_fn,
+            worker_init_fn=seed_worker,
+            generator=self.gen,
         )
 
     def val_dataloader(self):
@@ -84,6 +89,8 @@ class PriceAssociationDataModule(L.LightningDataModule):
             persistent_workers=self.num_workers > 0,
             shuffle=False,
             collate_fn=self.collate_fn,
+            worker_init_fn=seed_worker,
+            generator=self.gen,
         )
 
     def test_dataloader(self):
@@ -94,6 +101,8 @@ class PriceAssociationDataModule(L.LightningDataModule):
             persistent_workers=self.num_workers > 0,
             shuffle=False,
             collate_fn=self.collate_fn,
+            worker_init_fn=seed_worker,
+            generator=self.gen,
         )
 
     def _get_transform(self) -> InputTransform:

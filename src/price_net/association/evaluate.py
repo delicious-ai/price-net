@@ -5,8 +5,8 @@ from pathlib import Path
 import numpy as np
 import torch
 import yaml
-from price_net.association.configs import EvaluationConfig
-from price_net.association.configs import TrainingConfig
+from price_net.association.configs import AssociatorEvaluationConfig
+from price_net.association.configs import AssociatorTrainingConfig
 from price_net.association.datamodule import PriceAssociationDataModule
 from price_net.association.models import PriceAssociatorLightningModule
 from price_net.enums import Aggregation
@@ -20,11 +20,11 @@ from tqdm import tqdm
 
 
 @torch.inference_mode()
-def evaluate(config: EvaluationConfig):
+def evaluate(config: AssociatorEvaluationConfig):
     model = PriceAssociatorLightningModule.load_from_checkpoint(config.ckpt_path).eval()
     device = model.device
     with open(config.trn_config_path, "r") as f:
-        training_config = TrainingConfig(**yaml.safe_load(f))
+        training_config = AssociatorTrainingConfig(**yaml.safe_load(f))
 
     datamodule = PriceAssociationDataModule(
         data_dir=training_config.dataset_dir,
@@ -112,7 +112,7 @@ def main():
     args = parser.parse_args()
 
     with open(args.config, "r") as f:
-        eval_config = EvaluationConfig(**yaml.safe_load(f))
+        eval_config = AssociatorEvaluationConfig(**yaml.safe_load(f))
     evaluate(config=eval_config)
 
 

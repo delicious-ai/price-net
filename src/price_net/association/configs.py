@@ -7,6 +7,7 @@ from price_net.enums import Aggregation
 from price_net.enums import Precision
 from price_net.enums import PredictionStrategy
 from pydantic import BaseModel
+from pydantic import Field
 
 
 class FeaturizationConfig(BaseModel):
@@ -32,7 +33,7 @@ class LoggingConfig(BaseModel):
     ckpt_dir: Path = Path("ckpt")
 
 
-class TrainingConfig(BaseModel):
+class AssociatorTrainingConfig(BaseModel):
     run_name: str
     dataset_dir: Path
     model: ModelConfig
@@ -44,13 +45,14 @@ class TrainingConfig(BaseModel):
     accelerator: Accelerator = Accelerator.CPU
     lr: float = 3e-4
     weight_decay: float = 1e-5
+    warmup_pct: float = Field(ge=0.0, le=1.0, default=0.1)
     random_seed: int = 1998
     precision: Precision = Precision.FULL
     max_logit_magnitude: float | None = None
     accumulate_grad_batches: int = 1
 
 
-class EvaluationConfig(BaseModel):
+class AssociatorEvaluationConfig(BaseModel):
     trn_config_path: Path
     ckpt_path: Path
     results_dir: Path
