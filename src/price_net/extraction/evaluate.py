@@ -145,10 +145,13 @@ class ExtractionEvaluation(object):
 
     def eval(self):
 
-        iou_arr = []
+        """iou_arr = []
         iou_bigrams_arr = []
         price_is_correct = []
-        type_is_correct = []
+        type_is_correct = []"""
+
+        # price_type, price_is_correct, iou_arr, iou_bigram, type_is_correct
+        results = []
 
         if self.use_cache and self.cache_path.exists():
             with open(self.cache_path, "r") as f:
@@ -174,29 +177,44 @@ class ExtractionEvaluation(object):
 
             _, pred_price_str = self.extractor.format_as_str(raw_output)
 
-            price_is_correct.append(pred_price_str.lower() == gt_price_str.lower())
-            type_is_correct.append(pred_price_type == ground_truth_price_type)
+            price_is_correct = pred_price_str.lower() == gt_price_str.lower()
+            type_is_correct = pred_price_type == ground_truth_price_type
 
             iou = self.get_iou_words(pred_price_str.lower(), gt_price_str.lower())
-            iou_arr.append(iou)
             iou_bigram = self.get_iou_bigrams(pred_price_str.lower(), gt_price_str.lower())
-            iou_bigrams_arr.append(iou_bigram)
+
+            results_row = {
+                "price_type": ground_truth_price_type.value,
+                "price_is_correct": price_is_correct,
+                "iou_words": iou,
+                "iou_bigrams": iou_bigram,
+                "type_is_correct": type_is_correct
+            }
+
+            results.append(results_row)
 
             if self.use_cache:
                 with open(self.cache_path, "w") as f:
                     json.dump(cached_outputs, f, indent=2)
 
-        results = {
-            "price_accuracy": float(np.mean(price_is_correct)),
-            "price_type_accuracy": float(np.mean(type_is_correct)),
-            "mean_iou": float(np.mean(iou_arr)),
-            "mean_iou_bigram": float(np.mean(iou_bigrams_arr)),
+        results = pd.DataFrame(results)
+        stratified = results.groupby("price_type").mean()
+
+        statistics = {
+            "overall":
+                {
+                    "price_accuracy": results.price_is_correct.mean(),
+                    "mean_iou": results.iou_words.mean(),
+                    "mean_iou_bigram": results.iou_bigrams.mean(),
+                    "price_type_accuracy": results.type_is_correct.mean(),
+            },
+            "stratified": stratified.to_dict(orient="index")
         }
 
 
-        print(json.dumps(results, indent=2))
+        print(json.dumps(statistics, indent=2))
         with open(self.results_path, "w") as f:
-            json.dump(results, f, indent=2)
+            json.dump(statistics, f, indent=2)
 
 
 
