@@ -1,0 +1,6 @@
+{
+  "price_accuracy": 0.763145428706774,
+  "price_type_accuracy": 0.8692562766461392,
+  "mean_iou": 0.8053213327017211,
+  "mean_iou_bigram": 0.8318160596452466
+}
