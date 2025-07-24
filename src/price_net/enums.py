@@ -65,11 +65,13 @@ class Accelerator(Enum):
 
 class HeuristicType(Enum):
     EVERYTHING = "everything"
+    GEMINI = "gemini"
     NEAREST = "nearest"
     NEAREST_BELOW = "nearest_below"
     NEAREST_PER_GROUP = "nearest_per_group"
     NEAREST_BELOW_PER_GROUP = "nearest_below_per_group"
     WITHIN_EPSILON = "within_epsilon"
+    HOUGH_REGIONS = "hough_regions"
 
 
 class Precision(Enum):

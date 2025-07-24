@@ -66,7 +66,7 @@ class BuyXGetYForZPrice(Price):
     price_type: Literal[PriceType.BUY_X_GET_Y_FOR_Z] = PriceType.BUY_X_GET_Y_FOR_Z
     buy_quantity: int
     get_quantity: int
-    get_price: float | None = None
+    get_price: float = 0.0
 
     @computed_field
     @property
@@ -112,6 +112,10 @@ PriceModelType = Annotated[
     StandardPrice | BulkOfferPrice | BuyXGetYForZPrice | UnknownPrice | MiscPrice,
     Field(discriminator="price_type"),
 ]
+
+
+class PriceBuilder(BaseModel):
+    price: PriceModelType
 
 
 class ProductPrice(BaseModel):
@@ -202,7 +206,7 @@ class PriceAssociationScene(BaseModel):
         return self
 
 
-class UPCPrice(BaseModel, frozen=True):
+class PriceAttribution(BaseModel, frozen=True):
     scene_id: str
     upc: str
     price: PriceModelType
