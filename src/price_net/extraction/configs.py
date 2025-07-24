@@ -1,6 +1,7 @@
 from pathlib import Path
-from pydantic import BaseModel
+
 import yaml
+from pydantic import BaseModel
 
 
 class ExtractionEvaluationConfig(BaseModel):

@@ -34,31 +34,31 @@ extract_model_name() {
 for config_file in "${CONFIG_FILES[@]}"; do
     echo ""
     echo "Processing config: $config_file"
-    
+
     # Extract model name for experiment naming
     model_name=$(extract_model_name "$config_file")
     echo "Model name: $model_name"
-    
+
     # Check if config file exists
     if [[ ! -f "$config_file" ]]; then
         echo "ERROR: Config file $config_file not found!"
         continue
     fi
-    
+
     # Run evaluation multiple times for this config
     for iteration in $(seq 1 $NUM_ITERATIONS); do
         exp_name="${model_name}-${iteration}"
         echo "  Running iteration $iteration/$NUM_ITERATIONS (exp-name: $exp_name)"
-        
+
         # Execute the evaluation script
         python "$EVALUATION_SCRIPT" \
             --config "$config_file" \
             --dataset-dir "$DATASET_DIR" \
             --exp-name "$exp_name"
-        
+
         echo "  ✓ Completed iteration $iteration for $model_name"
     done
-    
+
     echo "✓ Completed all iterations for $model_name"
 done
 
