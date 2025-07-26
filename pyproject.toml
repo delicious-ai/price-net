@@ -11,6 +11,7 @@ dependencies = [
     "ipykernel>=6.29.5",
     "ipynb>=0.5.1",
     "ipywidgets>=8.1.7",
+    "json-repair>=0.47.8",
     "lightning>=2.5.2",
     "matplotlib>=3.10.3",
     "notebook>=7.4.4",
