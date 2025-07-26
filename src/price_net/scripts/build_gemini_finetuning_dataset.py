@@ -20,7 +20,6 @@ PRICE_BOX_CSV = "price_boxes.csv"
 PRICE_CONTENTS_COL = "price_contents"
 PRICE_TYPE_TYPE_COL = "price_type"
 BBOX_ID_COL = "price_bbox_id"
-GCS_BUCKET = "dai-ultra-datasets"
 GCS_DIR = "pricing/kdd26"
 IMG_EXT = "jpg"
 FILENAME = "dataset.jsonl"
@@ -35,7 +34,7 @@ def parse_args():
         "--prompt-path",
         type=str,
         help="path to prompt",
-        default="price_net/extraction/prompts/few-shot.txt",
+        default="prompts/extract_price_from_tag.txt",
     )
     parser.add_argument(
         "--upload-images",
@@ -43,6 +42,7 @@ def parse_args():
         default=False,
         help="whether to upload images to GCS",
     )
+    parser.add_argument("--gcs-bucket", type=str, help="GCS bucket to upload to")
     parser.add_argument("--val-prob", type=float, default=0.2)
     return parser.parse_args()
 
@@ -84,14 +84,14 @@ def get_price_json(df_row: pd.Series) -> dict:
         pass
 
     elif price_type == PriceType.STANDARD:
-        price, price_string = parse_regular_price(contents)
+        price, _ = parse_regular_price(contents)
         output["amount"] = price[0]
     elif price_type == PriceType.BULK_OFFER:
-        price, price_string = parse_bulk_offer_price(contents)
+        price, _ = parse_bulk_offer_price(contents)
         output["quantity"] = price[0]
         output["total_price"] = price[1]
     elif price_type == PriceType.BUY_X_GET_Y_FOR_Z:
-        price, price_string = parse_buy_x_get_y_price(contents)
+        price, _ = parse_buy_x_get_y_price(contents)
         output["buy_quantity"] = price[0]
         output["get_quantity"] = price[1]
         output["get_price"] = price[2]
@@ -100,7 +100,13 @@ def get_price_json(df_row: pd.Series) -> dict:
     return output
 
 
-def main(dataset_dir: Path, prompt_path: Path, upload_images: bool, val_prob: float):
+def main(
+    dataset_dir: Path,
+    prompt_path: Path,
+    upload_images: bool,
+    val_prob: float,
+    gcs_bucket: str,
+):
     df = pd.read_csv(str(dataset_dir / PRICE_BOX_CSV))
     df = df[~(pd.isnull(df[PRICE_CONTENTS_COL]) & pd.isnull(df[PRICE_TYPE_TYPE_COL]))]
     df = df[df.price_type != "MISC"]
@@ -110,16 +116,16 @@ def main(dataset_dir: Path, prompt_path: Path, upload_images: bool, val_prob: fl
 
     trn_contents = []
     val_contents = []
-    for index, row in tqdm(df.iterrows(), total=len(df)):
+    for _, row in tqdm(df.iterrows(), total=len(df)):
         image_id = row[BBOX_ID_COL]
         img_bucket_path = f"{GCS_DIR}/price-images/{image_id}.{IMG_EXT}"
         price_dict = get_price_json(row)
         local_img_path = dataset_dir / "price-images" / f"{image_id}.{IMG_EXT}"
 
         if upload_images:
-            upload_to_gcs(local_img_path, GCS_BUCKET, img_bucket_path)
+            upload_to_gcs(local_img_path, gcs_bucket, img_bucket_path)
 
-        img_uri = f"gs://{GCS_BUCKET}/{img_bucket_path}"
+        img_uri = f"gs://{gcs_bucket}/{img_bucket_path}"
 
         item = {
             "contents": [
@@ -151,11 +157,11 @@ def main(dataset_dir: Path, prompt_path: Path, upload_images: bool, val_prob: fl
     print(f"Number of training examples: {len(trn_contents)}/{df.shape[0]}")
 
     write_and_upload_jsonl(
-        val_contents, Path(FILENAME), GCS_BUCKET, f"{GCS_DIR}/val/{FILENAME}"
+        val_contents, Path(FILENAME), gcs_bucket, f"{GCS_DIR}/val/{FILENAME}"
     )
     if val_contents:
         write_and_upload_jsonl(
-            trn_contents, Path(FILENAME), GCS_BUCKET, f"{GCS_DIR}/train/{FILENAME}"
+            trn_contents, Path(FILENAME), gcs_bucket, f"{GCS_DIR}/train/{FILENAME}"
         )
 
 
@@ -166,4 +172,5 @@ if __name__ == "__main__":
         prompt_path=Path(args.prompt_path),
         upload_images=args.upload_images,
         val_prob=args.val_prob,
+        gcs_bucket=args.gcs_bucket,
     )

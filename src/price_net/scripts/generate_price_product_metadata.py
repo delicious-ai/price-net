@@ -9,6 +9,10 @@ from typing import Callable
 import easyocr
 import polars as pl
 from google import genai
+from google.genai.types import Content
+from google.genai.types import GenerateContentConfig
+from google.genai.types import Part
+from google.genai.types import ThinkingConfig
 from PIL import Image
 from price_net.utils import parse_unknown_args
 from tqdm import tqdm
@@ -17,29 +21,29 @@ from tqdm import tqdm
 def get_text_from_crop__gemini(
     crop: Image.Image, client: genai.Client, model: str, retry: bool = True
 ) -> dict[str, str]:
-    prompt = open("src/price_net/prompts/price_tag_extraction.txt", "r").read()
+    prompt = open("prompts/extract_product_info_from_tag.txt", "r").read()
     buffer = io.BytesIO()
     crop.save(buffer, format="JPEG")
     image_bytes = buffer.getvalue()
     try:
         raw = client.models.generate_content(
             model=model,
-            config=genai.types.GenerateContentConfig(
+            config=GenerateContentConfig(
                 temperature=1,
                 top_p=0.95,
                 max_output_tokens=8192,
                 response_modalities=["TEXT"],
                 response_mime_type="application/json",
-                thinking_config=genai.types.ThinkingConfig(thinking_budget=-1)
+                thinking_config=ThinkingConfig(thinking_budget=-1)
                 if "pro" in model
                 else None,
             ),
             contents=[
-                genai.types.Content(
+                Content(
                     role="user",
                     parts=[
-                        genai.types.Part.from_text(text=prompt),
-                        genai.types.Part.from_bytes(
+                        Part.from_bytes(
+                            Part.from_text(text=prompt),
                             data=image_bytes,
                             mime_type="image/jpeg",
                         ),

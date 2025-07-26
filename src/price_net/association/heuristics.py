@@ -358,7 +358,7 @@ class Gemini(Heuristic):
         self, pairs: list[dict[str, dict[str, str]]], retry: bool = True
     ) -> list[bool]:
         prompt = (
-            open("src/price_net/prompts/product_price_association.txt")
+            open("prompts/associate_products_and_prices_from_extracted_text.txt")
             .read()
             .format(pairs=pairs)
         )

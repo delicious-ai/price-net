@@ -1,4 +1,4 @@
 model_name: gemini-2.5-flash
 temperature: 0.0
-prompt_fpath: src/price_net/extraction/prompts/few-shot.txt
+prompt_fpath: prompts/extract_price_from_tag.txt
 type: single-gemini

@@ -1,4 +1,4 @@
 model_name: projects/1038841737088/locations/us-central1/endpoints/8151089814540648448
 temperature: 0.0
-prompt_fpath: src/price_net/extraction/prompts/few-shot.txt
+prompt_fpath: prompts/extract_price_from_tag.txt
 type: single-gemini

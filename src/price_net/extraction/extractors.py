@@ -182,7 +182,6 @@ class GeminiExtractor(BaseExtractor):
         return price_type, output
 
     def format_as_str(self, price_json: dict) -> str:
-        # TODO: consider creating PriceType classes with __str__ method. Avoid big if/else
         price_type, price = self.format(price_json)
         if price_type == PriceType.STANDARD:
             output = f"${price[0]:.2f}"
@@ -422,11 +421,3 @@ class GoogleOcrExtractor(BaseExtractor):
     @classmethod
     def from_dict(cls, cfg: dict):
         return GoogleOcrExtractor()
-
-
-if __name__ == "__main__":
-    fname = "/Users/porterjenkins/data/price-attribution-scenes/test/price-images/0c0a4618-105f-4e6c-8047-d75c8d768489.jpg"
-    config = "configs/eval/extractors/google-ocr.yaml"
-    model = GoogleOcrExtractor.from_yaml(config)
-    output = model(fname)
-    print(output)

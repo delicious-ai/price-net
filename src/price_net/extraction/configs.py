@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pathlib import Path
 
 import yaml
@@ -10,7 +12,7 @@ class ExtractionEvaluationConfig(BaseModel):
     cacheing: bool = False
 
     @classmethod
-    def from_yaml(cls, yaml_path: str) -> "ExtractionEvaluationConfig":
+    def from_yaml(cls, yaml_path: str) -> ExtractionEvaluationConfig:
         with open(yaml_path, "r") as f:
             data = yaml.safe_load(f)
         return cls(**data)

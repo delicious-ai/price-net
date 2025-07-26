@@ -1,21 +1,17 @@
 #!/bin/bash
 
-# Bash script to automate evaluation of ML algorithms for price extraction
-# Author: Auto-generated for price-net project
-# Usage: ./evaluate_models.sh
-
 set -e  # Exit on any error
 
 # Configuration
-DATASET_DIR="/Users/porterjenkins/data/price-attribution-scenes/test"
-EVALUATION_SCRIPT="../extraction/evaluate.py"
-NUM_ITERATIONS=5
+DATASET_DIR="data/breps/test"
+EVALUATION_SCRIPT="src/price_net/extraction/evaluate.py"
+NUM_ITERATIONS=3
 
 # Config files to evaluate
 CONFIG_FILES=(
-    "../../../configs/eval/extractors/gemini-2.5-flash.yaml"
-    "../../../configs/eval/extractors/gemini-2.5-pro.yaml"
-    "../../../configs/eval/extractors/gemini-2.0-flash.yaml"
+    "configs/extraction/gemini_2.5_flash.yaml"
+    "configs/extraction/gemini_2.5_pro.yaml"
+    "configs/extraction/gemini_2.0_flash.yaml"
 )
 
 echo "Starting automated evaluation of price extraction models..."
