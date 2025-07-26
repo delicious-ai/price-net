@@ -161,11 +161,11 @@ class ExtractionEvaluation(object):
         else:
             cached_outputs = {}
 
-        for i, row in tqdm(self.price_boxes.iterrows(), total=len(self.price_boxes)):
+        for _, row in tqdm(self.price_boxes.iterrows(), total=len(self.price_boxes)):
             ground_truth_price_type = self._price_type_string_to_enum(
                 row[self.price_type_col]
             )
-            ground_truth_price, gt_price_str = self._parse_price(
+            _, gt_price_str = self._parse_price(
                 row[self.price_contents_col], ground_truth_price_type
             )
             fname = row[self.price_bbox_id_col] + self.img_format
@@ -177,7 +177,7 @@ class ExtractionEvaluation(object):
                 raw_output = self.extractor(img_path)
                 cached_outputs[fname] = raw_output
 
-            pred_price_type, pred_price = self.extractor.format(raw_output)
+            pred_price_type, _ = self.extractor.format(raw_output)
 
             _, pred_price_str = self.extractor.format_as_str(raw_output)
 

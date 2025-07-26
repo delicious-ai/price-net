@@ -167,8 +167,6 @@ class AssignProductToNearestPriceBelowPerGroup(Heuristic):
             if not distances.isfinite().any():
                 continue
             idx_of_nearest = torch.argmin(distances).item() % distances.shape[1]
-            if idx_of_nearest >= len(price_ids):
-                breakpoint()
             implied_group = PriceGroup(
                 product_bbox_ids=group.product_bbox_ids,
                 price_bbox_ids={price_ids[idx_of_nearest]},
