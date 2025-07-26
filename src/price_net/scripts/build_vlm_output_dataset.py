@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import csv
 import json
 import os
 import sys
@@ -18,21 +17,6 @@ from price_net.extraction.end_to_end import (
     create_gpt_attribution_extractor,
 )
 from price_net.association.configs import EndToEndConfig
-
-
-def get_products_from_scene(
-    scene: PriceAssociationScene, upc_to_name_mapping: dict
-) -> list[tuple]:
-    """Get products list for the attribution extractor"""
-    products = []
-
-    all_upcs = list(scene.products.values())
-    unique_upcs = set(all_upcs)
-    for upc in unique_upcs:
-        product_name = upc_to_name_mapping.get(upc, "unavailable")
-        products.append((product_name, upc))
-
-    return products
 
 
 def save_attributions_to_file(new_attributions, all_attributions, output_path):
@@ -68,7 +52,40 @@ def save_attributions_to_file(new_attributions, all_attributions, output_path):
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--config", type=Path)
+    parser.add_argument(
+        "--log-file",
+        type=str,
+        default=None,
+        help="Path to log file (captures all print statements)",
+    )
     args = parser.parse_args()
+
+    # Redirect all print statements to log file if specified
+    if args.log_file:
+        log_path = Path(args.log_file)
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Create a custom output that writes to both console and file
+        class DualOutput:
+            def __init__(self, console, file):
+                self.console = console
+                self.file = file
+
+            def write(self, text):
+                self.console.write(text)
+                self.file.write(text)
+                self.file.flush()  # Ensure immediate write
+
+            def flush(self):
+                self.console.flush()
+                self.file.flush()
+
+        # Open log file and redirect both stdout and stderr
+        log_file = open(args.log_file, "a")
+        sys.stdout = DualOutput(sys.__stdout__, log_file)
+        sys.stderr = DualOutput(sys.__stderr__, log_file)
+        print(f"\n{'=' * 50}")
+        print(f"Logging all output (stdout + stderr) to: {args.log_file}")
 
     # Read config to determine model type
     with open(args.config, "r") as f:
@@ -92,16 +109,6 @@ if __name__ == "__main__":
     # Load the dataset into scenes
     with open(config.dataset_dir / "raw_price_scenes.json", "r") as f:
         scenes = [PriceAssociationScene(**scene) for scene in json.load(f)]
-
-    # Load the upc to product mapping
-    upc_to_product_name = dict()
-    with open(config.upc_to_name_path, newline="") as csvfile:
-        reader = csv.reader(csvfile)
-        for row in reader:
-            upc, desc = row
-            if upc == desc:
-                desc = "unavailable"
-            upc_to_product_name[upc] = desc
 
     # Process all scenes
     print(f"=== Processing {len(scenes)} scenes ===")
@@ -159,3 +166,9 @@ if __name__ == "__main__":
         )
 
     print("Final save completed!")
+
+    # Close log file if we opened one and restore original streams
+    if args.log_file and hasattr(sys.stdout, "file"):
+        sys.stdout.file.close()
+        sys.stdout = sys.__stdout__  # Restore original stdout
+        sys.stderr = sys.__stderr__  # Restore original stderr

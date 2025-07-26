@@ -5,6 +5,7 @@ You are an expert AI analyst for retail price extraction. Your task is to analyz
 ## Core Rules
 
 - **Currency**: All prices are in US dollars. Convert cents to dollars (e.g., 88¢ → $0.88)
+- **Extraction**: Prices must conform to the 'PriceOutput' type
 - **Association Logic**: Use shelf structure, visual depth, and price tag positioning to associate prices with products
 - **Visual Cues**: Consider product placement, shelf alignment, and spatial relationships
 - **No Forced Matches**: Not every product will have a visible price tag, and not every price tag corresponds to a product in the list
@@ -4398,9 +4399,18 @@ does not cleanly fit into one of these categories, return:
 {"upc": "041508913553", "price": {"price_type": "UNKNOWN"}}
 ```
 
+If the previous 5 examples belonged to the same image, then the final output would be
+
+```json
+[{"upc": "011110100009", "price": {"price_type": "STANDARD", "amount": 3.99}}, {"upc": "819215020495", "price": {"price_type": "BULK_OFFER", "quantity": 5, "total_price": 6.00}}, {"upc": "052000241211", "price": {"price_type": "BUY_X_GET_Y_FOR_Z", "buy_quantity": 2, "get_quantity": 1, "get_price": 0.00}}, {"upc": "811374035594", "price": {"price_type": "MISC", "contents": "Member Price"}}, {"upc": "041508913553", "price": {"price_type": "UNKNOWN"}}]
+```
+
+**Note that the response is a VALID array (commas between json objects and no comma after the last object), all strings have CLOSED DOUBLE QUOTES, and all brackets are CLOSED.**
+
+
 ## Final Reminders
 
-- **Output Format**: Return ONLY a valid JSON array of ProductPriceAssociation objects. No preamble, no explanation.
+- **Output Format**: Return ONLY a valid JSON array of ProductPriceAssociation objects. No preamble, no explanation. "price" must follow the PriceOutput type.
 - **UPC Validation**: Do NOT make up UPC values. Use ONLY the provided dictionary mappings.
 - **Quality Standard**: Precision over recall - only predict associations you are confident about.
 - **Association Rules**: 

@@ -16,6 +16,7 @@ from google.genai.types import Content
 from google.genai.types import GenerateContentConfig
 from google.genai.types import GenerateContentResponse
 from google.genai.types import Part
+from json_repair import repair_json
 from openai import OpenAI
 from tqdm import tqdm
 
@@ -127,7 +128,12 @@ class GeminiExtractor(BaseExtractor):
     def __call__(self, img_input: Union[str, Path, bytes]) -> dict:
         img_input = self._route_input(img_input)
         raw_response = self._api_call(img_input)
-        output = json.loads(raw_response.text.replace("'", '"'))
+        text_response = raw_response.text.replace("'", '"')
+        try:
+            output = json.loads(text_response)
+        except json.JSONDecodeError:
+            text_response = repair_json(text_response)
+            output = json.loads(text_response)
 
         return output
 
@@ -184,20 +190,23 @@ class GPTExtractor(BaseExtractor):
         raw_response = self._api_call(img_b64)
 
         # Extract content from OpenAI response
-        response_text = raw_response.choices[0].message.content
+        text_response = raw_response.choices[0].message.content
 
         # Clean the response text (remove any markdown formatting or extra text)
-        if "```json" in response_text:
-            start = response_text.find("```json") + 7
-            end = response_text.find("```", start)
-            response_text = response_text[start:end].strip()
-        elif "```" in response_text:
-            start = response_text.find("```") + 3
-            end = response_text.find("```", start)
-            response_text = response_text[start:end].strip()
+        if "```json" in text_response:
+            start = text_response.find("```json") + 7
+            end = text_response.find("```", start)
+            text_response = text_response[start:end].strip()
+        elif "```" in text_response:
+            start = text_response.find("```") + 3
+            end = text_response.find("```", start)
+            text_response = text_response[start:end].strip()
 
-        output = json.loads(response_text)
-
+        try:
+            output = json.loads(text_response)
+        except json.JSONDecodeError:
+            text_response = repair_json(text_response)
+            output = json.loads(text_response)
         return output
 
 
