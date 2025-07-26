@@ -1,0 +1,4 @@
+model_name: gemini-2.5-pro
+temperature: 0.0
+prompt_fpath: prompts/extract_price_from_tag.txt
+type: single-gemini

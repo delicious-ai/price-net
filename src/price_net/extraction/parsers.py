@@ -1,7 +1,7 @@
-import torch
+from typing import Tuple
 
 
-def parse_regular_price(price_contents: str) -> torch.Tensor:
+def parse_regular_price(price_contents: str) -> Tuple[Tuple[float], str]:
     """
     Parses a regular price string and converts it into a tensor format.
         - Example: "$4.99" -> tensor([4.9900])
@@ -12,15 +12,16 @@ def parse_regular_price(price_contents: str) -> torch.Tensor:
             dollar sign (e.g., "$19.99").
 
     Returns:
-        torch.Tensor: (float) A tensor containing the numeric representation of the price
+        tuple: (float) A tensor containing the numeric representation of the price
             extracted from the input string.
     """
     price = float(price_contents.strip("$"))
-    output = torch.tensor(price)
-    return output
+    output = (price,)
+    price = f"${price:.2f}"
+    return output, price
 
 
-def parse_volume_discount_price(price_contents: str) -> torch.Tensor:
+def parse_bulk_offer_price(price_contents: str) -> Tuple[Tuple[float, float], str]:
     """
     Parses a formatted string containing volume and price information and converts it
     into a tensor with numeric values for further processing or computation.
@@ -32,22 +33,25 @@ def parse_volume_discount_price(price_contents: str) -> torch.Tensor:
             price separated by a "/" symbol. Example format: "10 / $25".
 
     Returns:
-        torch.Tensor: (float) A tensor containing two elements. The first element is the
+        tuple: (float) A tensor containing two elements. The first element is the
             parsed floating-point value of the units, and the second element is the
             parsed floating-point value of the price.
     """
     units, price = price_contents.split("/")
     units = float(units.strip())
     price = float(price.strip().strip("$"))
-    output = torch.tensor([units, price])
-    return output
+    output = (units, price)
+    price = f"{int(output[0])} / ${output[1]:.2f}"
+    return output, price
 
 
-def parse_unreadable_price(price_contents: str) -> torch.Tensor:
-    return torch.tensor(0.0)
+def parse_unreadable_price(price_contents: str) -> Tuple[Tuple, str]:
+    return (), price_contents
 
 
-def parse_buy_x_get_y_price(price_contents: str) -> torch.Tensor:
+def parse_buy_x_get_y_price(
+    price_contents: str,
+) -> Tuple[Tuple[float, float, float], str]:
     """
     Parses a string representing a "Buy X Get Y for Z" price structure and converts
     the numeric values into a PyTorch tensor.
@@ -65,7 +69,7 @@ def parse_buy_x_get_y_price(price_contents: str) -> torch.Tensor:
             structure. The string should be formatted as "Buy X get Y for $Z".
 
     Returns:
-        torch.Tensor: (float) A tensor containing the numeric values of X, Y, and Z in
+        tuple: (float) A tensor containing the numeric values of X, Y, and Z in
         the "Buy X get Y for Z" structure.
     """
     x, y_price = price_contents.lower().split("get")
@@ -75,15 +79,17 @@ def parse_buy_x_get_y_price(price_contents: str) -> torch.Tensor:
     y = float(y.strip())
     price = float(price.strip().strip("$"))
 
-    return torch.tensor([x, y, price])
+    output = (x, y, price)
+    price = f"Buy {int(output[0])}, Get {int(output[1])} / ${output[2]:.2f}"
+    return output, price
 
 
-def parse_generic_price(price_contents: str) -> torch.Tensor:
+def parse_generic_price(price_contents: str) -> tuple:
     pass
 
 
 if __name__ == "__main__":
     print(parse_regular_price(price_contents="$4.99"))
-    print(parse_volume_discount_price(price_contents="5 / $40"))
+    print(parse_bulk_offer_price(price_contents="5 / $40"))
     print(parse_unreadable_price("Unreadable"))
     print(parse_buy_x_get_y_price(price_contents="Buy 1, Get 1 / $0"))

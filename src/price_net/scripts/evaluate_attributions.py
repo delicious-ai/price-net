@@ -3,12 +3,10 @@ from __future__ import annotations
 import json
 import statistics
 from argparse import ArgumentParser
-from collections import defaultdict
 from itertools import product
 from pathlib import Path
 from pprint import pprint
 
-import numpy as np
 import torch
 import yaml
 from price_net.association.configs import AssociatorEvaluationConfig
@@ -24,6 +22,7 @@ from price_net.schema import PriceAssociationScene
 from price_net.schema import PriceAttribution
 from price_net.schema import PriceBuilder
 from price_net.schema import PriceModelType
+from price_net.schema import UnknownPrice
 from pydantic import BaseModel
 from pydantic import Field
 from pydantic import model_validator
@@ -67,7 +66,6 @@ class AttributionEvaluationConfig(BaseModel):
 
 
 IGNORED_PRICE_TYPES = (PriceType.UNKNOWN, PriceType.MISC)
-PRICE_TYPES_WITH_UNIT_PRICE = (PriceType.STANDARD, PriceType.BULK_OFFER)
 
 
 def _get_heuristic_attributions(
@@ -105,8 +103,8 @@ def _get_learned_attributions(
 
     datamodule = PriceAssociationDataModule(
         data_dir=training_config.dataset_dir,
-        aggregation=training_config.model.aggregation,
         prediction_strategy=training_config.model.prediction_strategy,
+        aggregation=training_config.model.aggregation,
         featurization_config=training_config.model.featurization,
     )
     datamodule.setup("test")
@@ -125,13 +123,14 @@ def _get_learned_attributions(
         pred_logits: torch.Tensor = model(X)
         pred_probs = pred_logits.sigmoid().flatten()
 
-        for j in range(len(X)):
+        for j in range(len(pred_probs)):
             if pred_probs[j] > threshold:
                 upc = group_ids[j]
-                price = prices[price_ids[j]]
-                attributions.add(
-                    PriceAttribution(scene_id=scene_id, upc=upc, price=price)
-                )
+                price = prices.get(price_ids[j], UnknownPrice())
+                if price.price_type not in IGNORED_PRICE_TYPES:
+                    attributions.add(
+                        PriceAttribution(scene_id=scene_id, upc=upc, price=price)
+                    )
     return attributions
 
 
@@ -191,6 +190,7 @@ def evaluate(config: AttributionEvaluationConfig):
             pred_attributions = _get_learned_attributions(
                 associator_eval_config=associator_eval_config,
                 prices=extracted_prices,
+                threshold=config.threshold,
             )
 
     tp = pred_attributions & actual_attributions
@@ -203,35 +203,7 @@ def evaluate(config: AttributionEvaluationConfig):
         (2 * precision * recall) / (precision + recall) if (precision + recall) else 0.0
     )
 
-    scene_upc_type_to_actual_price = defaultdict(list)
-    scene_upc_type_to_pred_price = defaultdict(list)
-
-    for x in actual_attributions:
-        price_type = x.price.price_type
-        if price_type in PRICE_TYPES_WITH_UNIT_PRICE:
-            assert x.price.unit_price is not None
-            scene_upc_type_to_actual_price[(x.scene_id, x.upc, price_type)].append(
-                x.price.unit_price
-            )
-    for x in pred_attributions:
-        price_type = x.price.price_type
-        if price_type in PRICE_TYPES_WITH_UNIT_PRICE:
-            assert x.price.unit_price is not None
-            scene_upc_type_to_pred_price[(x.scene_id, x.upc, price_type)].append(
-                x.price.unit_price
-            )
-
-    abs_errors = []
-    for key in set(scene_upc_type_to_actual_price) & set(scene_upc_type_to_pred_price):
-        actuals = scene_upc_type_to_actual_price[key]
-        preds = scene_upc_type_to_pred_price[key]
-
-        for pred in preds:
-            abs_errors.append(min(np.abs(np.array(actuals) - pred)))
-
-    mae = np.mean(abs_errors).item() if abs_errors else None
-
-    metrics = {"precision": precision, "recall": recall, "f1": f1, "mae": mae}
+    metrics = {"precision": precision, "recall": recall, "f1": f1}
 
     results_dir.mkdir(parents=True, exist_ok=True)
     result_file = Path(results_dir / "attribution_metrics.yaml")
@@ -250,9 +222,6 @@ def evaluate(config: AttributionEvaluationConfig):
                 "f1": statistics.mean(
                     [exp["runs"][k]["f1"] for k in exp["runs"].keys()]
                 ),
-                "mae": statistics.mean(
-                    [exp["runs"][k]["mae"] for k in exp["runs"].keys()]
-                ),
             },
             "std": {
                 "precision": statistics.stdev(
@@ -263,9 +232,6 @@ def evaluate(config: AttributionEvaluationConfig):
                 ),
                 "f1": statistics.stdev(
                     [exp["runs"][k]["f1"] for k in exp["runs"].keys()]
-                ),
-                "mae": statistics.stdev(
-                    [exp["runs"][k]["mae"] for k in exp["runs"].keys()]
                 ),
             },
         }

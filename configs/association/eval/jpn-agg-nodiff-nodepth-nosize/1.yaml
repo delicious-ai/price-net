@@ -1,3 +1,3 @@
 trn_config_path: configs/association/train/jpn-agg-nodiff-nodepth-nosize/1.yaml
 ckpt_path: ckpt/jpn-agg-nodiff-nodepth-nosize-1/best_loss.ckpt
-results_dir: results/jpn-agg-nodiff-nodepth-nosize-1
+results_dir: results/association/jpn-agg-nodiff-nodepth-nosize-1

@@ -1,5 +1,5 @@
 run_name: jpn-agg-nodiff-nodepth-nosize-1
-dataset_dir: data/price-attribution-scenes
+dataset_dir: data/breps
 model:
   prediction_strategy: joint
   aggregation: closest_per_group
