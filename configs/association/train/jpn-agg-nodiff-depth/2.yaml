@@ -4,7 +4,6 @@ dataset_dir: data/price-attribution-scenes
 gamma: 2.0
 logging:
   ckpt_dir: ckpt
-  entity: prj-research
   log_dir: logs
   project_name: price-attribution
   use_wandb: true
@@ -29,10 +28,11 @@ model:
     - 128
     - 64
     num_encoder_layers: 3
-    num_heads: 4
+    num_heads: 8
 num_epochs: 30
 num_workers: 0
 precision: bf16-mixed
-random_seed: 544472
+random_seed: 2
 run_name: jpn-agg-nodiff-depth-2
+warmup_pct: 0.1
 weight_decay: 1e-5
