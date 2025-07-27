@@ -6,9 +6,9 @@ import yaml
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.loggers import CSVLogger
 from lightning.pytorch.loggers import WandbLogger
-from price_net.association.configs import AssociatorTrainingConfig
 from price_net.association.datamodule import PriceAssociationDataModule
 from price_net.association.models import PriceAssociatorLightningModule
+from price_net.configs import AssociatorTrainingConfig
 from price_net.utils import seed_everything
 
 

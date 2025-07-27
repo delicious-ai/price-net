@@ -9,7 +9,7 @@ import torch
 from price_net.association.transforms import ConcatenateBoundingBoxes
 from price_net.association.transforms import InputTransform
 from price_net.enums import Aggregation
-from price_net.schema import PriceAssociationScene
+from price_net.schema import PriceScene
 from price_net.utils import parse_bboxes
 from torch.utils.data import Dataset
 from tqdm import tqdm
@@ -138,7 +138,7 @@ class PriceAssociationDataset(Dataset):
         return instances
 
     def _process_scene(self, raw_scene: dict):
-        scene = PriceAssociationScene(**raw_scene)
+        scene = PriceScene(**raw_scene)
         scene_id = scene.scene_id
 
         product_bboxes, prod_ids, prod_id_to_idx = parse_bboxes(scene.product_bboxes)

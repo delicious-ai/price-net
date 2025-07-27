@@ -124,14 +124,28 @@ class ProductPrice(BaseModel):
 
 
 class BoundingBox(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid4()))
     cx: float = Field(ge=0.0, le=1.0)
     cy: float = Field(ge=0.0, le=1.0)
-    cz: float = Field(ge=0.0, le=1.0)
+    cz: float | None = Field(ge=0.0, le=1.0, default=None)
     w: float = Field(ge=0.0, le=1.0)
     h: float = Field(ge=0.0, le=1.0)
+    label: str | None = None
 
     def to_tensor(self) -> torch.Tensor:
-        return torch.tensor([self.cx, self.cy, self.cz, self.w, self.h])
+        centroid = (
+            torch.tensor([self.cx, self.cy, self.cz])
+            if self.cz is not None
+            else torch.tensor([self.cx, self.cy])
+        )
+        size = torch.tensor([self.w, self.h])
+        return torch.cat([centroid, size])
+
+
+class SceneDetections(BaseModel):
+    scene_id: str
+    product_bboxes: list[BoundingBox]
+    price_bboxes: list[BoundingBox]
 
 
 class PriceGroup(BaseModel):
@@ -145,7 +159,7 @@ class ProductGroup(BaseModel):
     product_bbox_ids: set[str]
 
 
-class PriceAssociationScene(BaseModel):
+class PriceScene(BaseModel):
     scene_id: str
     product_bboxes: dict[str, BoundingBox]
     price_bboxes: dict[str, BoundingBox]
@@ -156,7 +170,7 @@ class PriceAssociationScene(BaseModel):
     model_config = {"arbitrary_types_allowed": True}
 
     @model_validator(mode="after")
-    def check_ids_are_consistent(self) -> PriceAssociationScene:
+    def check_ids_are_consistent(self) -> PriceScene:
         product_bbox_ids = set(self.product_bboxes.keys())
         price_bbox_ids = set(self.price_bboxes.keys())
         if product_bbox_ids & price_bbox_ids:

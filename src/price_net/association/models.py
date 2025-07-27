@@ -5,8 +5,8 @@ from typing import Literal
 
 import lightning as L
 import torch
-from price_net.association.configs import ModelConfig
 from price_net.association.losses import sigmoid_focal_loss_star
+from price_net.configs import ModelConfig
 from price_net.enums import PredictionStrategy
 from torch import nn
 from torch.nn import TransformerEncoder
