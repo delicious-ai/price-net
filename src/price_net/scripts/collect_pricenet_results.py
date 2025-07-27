@@ -18,6 +18,8 @@ if __name__ == "__main__":
         "precision": [],
         "recall": [],
         "f1": [],
+        "auroc": [],
+        "aupr": [],
     }
     precisions = defaultdict(list)
     recalls = defaultdict(list)
@@ -40,6 +42,8 @@ if __name__ == "__main__":
         all_results["precision"].append(metrics[precision_key])
         all_results["recall"].append(metrics[recall_key])
         all_results["f1"].append(metrics[f1_key])
+        all_results["auroc"].append(metrics["roc-auc"])
+        all_results["aupr"].append(metrics["aupr"])
 
     all_results = pl.DataFrame(all_results)
     all_results = all_results.group_by(["method"]).agg(
@@ -49,5 +53,10 @@ if __name__ == "__main__":
         pl.col("recall").std().alias("recall_std"),
         pl.col("f1").mean().alias("f1_mean"),
         pl.col("f1").std().alias("f1_std"),
+        pl.col("auroc").mean().alias("auroc_mean"),
+        pl.col("auroc").std().alias("auroc_std"),
+        pl.col("aupr").mean().alias("aupr_mean"),
+        pl.col("aupr").std().alias("aupr_std"),
     )
     print(all_results)
+    all_results.write_csv("combined_pricenet_results.csv")
