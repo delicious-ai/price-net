@@ -1,0 +1,3 @@
+ckpt_path: ckpt/pricenet-marginal-2/best_loss.ckpt
+results_dir: results/association/pricenet-marginal-2
+trn_config_path: configs/association/train/pricenet-marginal/2.yaml

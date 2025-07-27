@@ -9,7 +9,7 @@ import torch
 from matplotlib import patches
 from matplotlib import pyplot as plt
 from price_net.schema import BoundingBox
-from price_net.schema import PriceAssociationScene
+from price_net.schema import PriceScene
 from seaborn import color_palette
 from torch.nn.utils.rnn import pad_sequence
 
@@ -26,7 +26,7 @@ def parse_bboxes(
         bbox_dict (dict[str, BoundingBox]): Dict mapping N bbox IDs to their associated xyzwh coordinates.
 
     Returns:
-        - torch.Tensor: A (N, 5) tensor of bbox coordinates.
+        - torch.Tensor: A (N, 4 | 5) tensor of bbox coordinates.
         - list[str]: A list of bbox IDs, with a 1:1 correspondence to the bbox tensor.
         - dict[str, int]: A dict mapping each bbox ID to its corresponding row in the bbox tensor.
     """
@@ -35,6 +35,8 @@ def parse_bboxes(
             torch.tensor(
                 [bbox.cx, bbox.cy, bbox.cz, bbox.w, bbox.h], dtype=torch.float32
             )
+            if bbox.cz is not None
+            else torch.tensor([bbox.cx, bbox.cy, bbox.w, bbox.h], dtype=torch.float32)
             for bbox in bbox_dict.values()
         ]
     )
@@ -90,7 +92,7 @@ def joint_prediction_collate_fn(
 
 
 def plot_price_scene(
-    scene: PriceAssociationScene, ax: plt.Axes | None = None
+    scene: PriceScene, ax: plt.Axes | None = None
 ) -> tuple[plt.Axes, dict[str, Color]]:
     """Plot the given price attribution scene as a graph (where nodes are the 2d centroids and edges exist if a product/price are associated).
 
@@ -209,14 +211,17 @@ def split_bboxes(
     """Split the provided bboxes into their centroid and size components.
 
     Args:
-        bboxes (torch.Tensor): A (N, 5) tensor of xyzwh bounding boxes.
+        bboxes (torch.Tensor): A (N, 4 | 5) tensor of xyzwh bounding boxes.
         use_depth (bool, optional): Whether/not to return a centroid with a z (depth) dimension. Defaults to False.
 
     Returns:
         tuple[torch.Tensor, torch.Tensor]: A (N, 2 | 3) tensor of bbox centroids, and a (N, 2) tensor of bbox sizes.
     """
-    centroids = bboxes[:, :3] if use_depth else bboxes[:, :2]
-    sizes = bboxes[:, 3:5]
+    if use_depth and bboxes.shape[1] != 5:
+        raise ValueError("Expected bboxes to have 5 columns when use_depth is True.")
+    centroid_end_idx = 3 if use_depth else 2
+    centroids = bboxes[:, :centroid_end_idx]
+    sizes = bboxes[:, centroid_end_idx : centroid_end_idx + 2]
     return centroids, sizes
 
 

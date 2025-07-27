@@ -1,3 +1,0 @@
-trn_config_path: configs/association/train/joint-price-net/3.yaml
-ckpt_path: ckpt/joint-price-net-3/best_loss.ckpt
-results_dir: results/joint-price-net-3

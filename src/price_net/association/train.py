@@ -6,9 +6,9 @@ import yaml
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.loggers import CSVLogger
 from lightning.pytorch.loggers import WandbLogger
-from price_net.association.configs import AssociatorTrainingConfig
 from price_net.association.datamodule import PriceAssociationDataModule
 from price_net.association.models import PriceAssociatorLightningModule
+from price_net.configs import AssociatorTrainingConfig
 from price_net.utils import seed_everything
 
 
@@ -55,14 +55,6 @@ def train(config: AssociatorTrainingConfig):
         precision=config.precision.value,
         accumulate_grad_batches=config.accumulate_grad_batches,
     )
-    model = PriceAssociatorLightningModule(
-        num_epochs=config.num_epochs,
-        model_config=config.model,
-        lr=config.lr,
-        weight_decay=config.weight_decay,
-        gamma=config.gamma,
-        max_logit_magnitude=config.max_logit_magnitude,
-    )
     datamodule = PriceAssociationDataModule(
         data_dir=config.dataset_dir,
         batch_size=config.batch_size,
@@ -70,6 +62,14 @@ def train(config: AssociatorTrainingConfig):
         prediction_strategy=config.model.prediction_strategy,
         aggregation=config.model.aggregation,
         featurization_config=config.model.featurization,
+    )
+    model = PriceAssociatorLightningModule(
+        model_config=config.model,
+        lr=config.lr,
+        weight_decay=config.weight_decay,
+        warmup_pct=config.warmup_pct,
+        gamma=config.gamma,
+        max_logit_magnitude=config.max_logit_magnitude,
     )
     trainer.fit(model, datamodule=datamodule)
 

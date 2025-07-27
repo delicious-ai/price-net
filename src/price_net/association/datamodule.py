@@ -5,9 +5,9 @@ from typing import Literal
 
 import lightning as L
 import torch
-from price_net.association.configs import FeaturizationConfig
 from price_net.association.dataset import PriceAssociationDataset
 from price_net.association.transforms import InputTransform
+from price_net.configs import FeaturizationConfig
 from price_net.enums import Aggregation
 from price_net.enums import PredictionStrategy
 from price_net.utils import joint_prediction_collate_fn
@@ -44,7 +44,7 @@ class PriceAssociationDataModule(L.LightningDataModule):
         self.aggregation = aggregation
         self.prediction_strategy = prediction_strategy
         self.featurization_config = featurization_config
-        self.transform = self._get_transform()
+        self.transform = self._get_transform(featurization_config)
         self.collate_fn = self._get_collate_fn()
         self.gen = torch.Generator()
         self.gen.manual_seed(0)
@@ -105,8 +105,8 @@ class PriceAssociationDataModule(L.LightningDataModule):
             generator=self.gen,
         )
 
-    def _get_transform(self) -> InputTransform:
-        config = self.featurization_config
+    @staticmethod
+    def _get_transform(config: FeaturizationConfig) -> InputTransform:
         _split_bboxes = partial(split_bboxes, use_depth=config.use_depth)
 
         class _Transform(InputTransform):

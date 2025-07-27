@@ -11,12 +11,12 @@ from tqdm import tqdm
 
 sys.path.append(str(Path(os.getcwd()).parent))
 
-from price_net.schema import PriceAssociationScene
+from price_net.schema import PriceScene
 from price_net.extraction.end_to_end import (
     create_gemini_attribution_extractor,
     create_gpt_attribution_extractor,
 )
-from price_net.association.configs import EndToEndConfig
+from price_net.configs import EndToEndConfig
 
 
 def save_attributions_to_file(new_attributions, all_attributions, output_path):
@@ -108,7 +108,7 @@ if __name__ == "__main__":
 
     # Load the dataset into scenes
     with open(config.dataset_dir / "raw_price_scenes.json", "r") as f:
-        scenes = [PriceAssociationScene(**scene) for scene in json.load(f)]
+        scenes = [PriceScene(**scene) for scene in json.load(f)]
 
     # Process all scenes
     print(f"=== Processing {len(scenes)} scenes ===")

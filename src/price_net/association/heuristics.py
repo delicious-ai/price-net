@@ -14,8 +14,8 @@ from google.genai.types import GenerateContentConfig
 from google.genai.types import Part
 from google.genai.types import ThinkingConfig
 from price_net.enums import HeuristicType
-from price_net.schema import PriceAssociationScene
 from price_net.schema import PriceGroup
+from price_net.schema import PriceScene
 from shapely.geometry import LineString
 from shapely.geometry import Point
 from shapely.ops import polygonize
@@ -23,11 +23,11 @@ from shapely.ops import unary_union
 
 
 class Heuristic(Protocol):
-    def __call__(self, scene: PriceAssociationScene) -> list[PriceGroup]: ...
+    def __call__(self, scene: PriceScene) -> list[PriceGroup]: ...
 
 
 class AssignEverythingToEverything(Heuristic):
-    def __call__(self, scene: PriceAssociationScene) -> list[PriceGroup]:
+    def __call__(self, scene: PriceScene) -> list[PriceGroup]:
         prod_ids = scene.product_bboxes.keys()
         price_ids = scene.price_bboxes.keys()
         groups = [
@@ -38,7 +38,7 @@ class AssignEverythingToEverything(Heuristic):
 
 
 class AssignProductToNearestPrice(Heuristic):
-    def __call__(self, scene: PriceAssociationScene) -> list[PriceGroup]:
+    def __call__(self, scene: PriceScene) -> list[PriceGroup]:
         prod_ids: list[str] = []
         prod_bboxes = []
         for id_, bbox in scene.product_bboxes.items():
@@ -71,7 +71,7 @@ class AssignProductToNearestPrice(Heuristic):
 
 
 class AssignProductToNearestPricePerGroup(Heuristic):
-    def __call__(self, scene: PriceAssociationScene) -> list[PriceGroup]:
+    def __call__(self, scene: PriceScene) -> list[PriceGroup]:
         price_ids: list[str] = []
         price_bboxes = []
         for id_, bbox in scene.price_bboxes.items():
@@ -99,7 +99,7 @@ class AssignProductToNearestPricePerGroup(Heuristic):
 
 
 class AssignProductToNearestPriceBelow(Heuristic):
-    def __call__(self, scene: PriceAssociationScene) -> list[PriceGroup]:
+    def __call__(self, scene: PriceScene) -> list[PriceGroup]:
         prod_ids: list[str] = []
         prod_bboxes = []
         for id_, bbox in scene.product_bboxes.items():
@@ -140,7 +140,7 @@ class AssignProductToNearestPriceBelow(Heuristic):
 
 
 class AssignProductToNearestPriceBelowPerGroup(Heuristic):
-    def __call__(self, scene: PriceAssociationScene) -> list[PriceGroup]:
+    def __call__(self, scene: PriceScene) -> list[PriceGroup]:
         price_ids: list[str] = []
         price_bboxes = []
         for id_, bbox in scene.price_bboxes.items():
@@ -167,8 +167,6 @@ class AssignProductToNearestPriceBelowPerGroup(Heuristic):
             if not distances.isfinite().any():
                 continue
             idx_of_nearest = torch.argmin(distances).item() % distances.shape[1]
-            if idx_of_nearest >= len(price_ids):
-                breakpoint()
             implied_group = PriceGroup(
                 product_bbox_ids=group.product_bbox_ids,
                 price_bbox_ids={price_ids[idx_of_nearest]},
@@ -182,7 +180,7 @@ class AssignProductToAllPricesWithinEpsilon(Heuristic):
     def __init__(self, epsilon: float):
         self.epsilon = epsilon
 
-    def __call__(self, scene: PriceAssociationScene) -> list[PriceGroup]:
+    def __call__(self, scene: PriceScene) -> list[PriceGroup]:
         prod_ids: list[str] = []
         prod_bboxes = []
         for id_, bbox in scene.product_bboxes.items():
@@ -222,7 +220,7 @@ class AssignProductToNearestPriceInHoughRegions(Heuristic):
         """
         self.hough_lines_dir = Path(hough_lines_dir)
 
-    def __call__(self, scene: PriceAssociationScene) -> list[PriceGroup]:
+    def __call__(self, scene: PriceScene) -> list[PriceGroup]:
         # Get scene data
         prod_ids: list[str] = []
         prod_bboxes = []
@@ -358,7 +356,7 @@ class Gemini(Heuristic):
         self, pairs: list[dict[str, dict[str, str]]], retry: bool = True
     ) -> list[bool]:
         prompt = (
-            open("src/price_net/prompts/product_price_association.txt")
+            open("prompts/associate_products_and_prices_from_extracted_text.txt")
             .read()
             .format(pairs=pairs)
         )
@@ -399,7 +397,7 @@ class Gemini(Heuristic):
         ]
         return response
 
-    def _prepare_products(self, scene: PriceAssociationScene) -> list[dict[str, str]]:
+    def _prepare_products(self, scene: PriceScene) -> list[dict[str, str]]:
         """
         Gets a unique list of products in the scene, with the upc and name.
         """
@@ -415,7 +413,7 @@ class Gemini(Heuristic):
             for upc, name in products.items()
         ]
 
-    def _prepare_prices(self, scene: PriceAssociationScene) -> list[dict[str, str]]:
+    def _prepare_prices(self, scene: PriceScene) -> list[dict[str, str]]:
         """
         Gets a unique list of prices in the scene, with the price type and contents, and the product metadata.
         """
@@ -434,7 +432,7 @@ class Gemini(Heuristic):
         ]
 
     def _prepare_ids(
-        self, scene: PriceAssociationScene, pairs: list[dict]
+        self, scene: PriceScene, pairs: list[dict]
     ) -> list[dict[str, list[str]]]:
         """
         Gets a list of ids for the products and prices in the scene.
@@ -461,7 +459,7 @@ class Gemini(Heuristic):
             )
         return ids
 
-    def __call__(self, scene: PriceAssociationScene) -> list[PriceGroup]:
+    def __call__(self, scene: PriceScene) -> list[PriceGroup]:
         # the model will return a list of
         # { product_bbox_ids: list[str], price_bbox_ids: list[str] }, cast to list[PriceGroup]
         products = self._prepare_products(scene)
