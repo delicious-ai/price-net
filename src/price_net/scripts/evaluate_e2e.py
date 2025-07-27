@@ -92,8 +92,8 @@ def _get_learned_attributions(
                     "price_id": price_ids,
                 },
                 schema_overrides={
-                    "product_bbox": pl.Array(pl.Float32, 4),
-                    "price_bbox": pl.Array(pl.Float32, 4),
+                    "product_bbox": pl.Array(pl.Float32, 5),
+                    "price_bbox": pl.Array(pl.Float32, 5),
                 },
             )
 

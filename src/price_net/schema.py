@@ -127,19 +127,13 @@ class BoundingBox(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid4()))
     cx: float = Field(ge=0.0, le=1.0)
     cy: float = Field(ge=0.0, le=1.0)
-    cz: float | None = Field(ge=0.0, le=1.0, default=None)
+    cz: float = Field(ge=0.0, le=1.0, default=0.0)
     w: float = Field(ge=0.0, le=1.0)
     h: float = Field(ge=0.0, le=1.0)
     label: str | None = None
 
     def to_tensor(self) -> torch.Tensor:
-        centroid = (
-            torch.tensor([self.cx, self.cy, self.cz])
-            if self.cz is not None
-            else torch.tensor([self.cx, self.cy])
-        )
-        size = torch.tensor([self.w, self.h])
-        return torch.cat([centroid, size])
+        return torch.tensor([self.cx, self.cy, self.cz, self.w, self.h])
 
 
 class SceneDetections(BaseModel):

@@ -211,17 +211,14 @@ def split_bboxes(
     """Split the provided bboxes into their centroid and size components.
 
     Args:
-        bboxes (torch.Tensor): A (N, 4 | 5) tensor of xyzwh bounding boxes.
+        bboxes (torch.Tensor): A (N, 5) tensor of xyzwh bounding boxes.
         use_depth (bool, optional): Whether/not to return a centroid with a z (depth) dimension. Defaults to False.
 
     Returns:
         tuple[torch.Tensor, torch.Tensor]: A (N, 2 | 3) tensor of bbox centroids, and a (N, 2) tensor of bbox sizes.
     """
-    if use_depth and bboxes.shape[1] != 5:
-        raise ValueError("Expected bboxes to have 5 columns when use_depth is True.")
-    centroid_end_idx = 3 if use_depth else 2
-    centroids = bboxes[:, :centroid_end_idx]
-    sizes = bboxes[:, centroid_end_idx : centroid_end_idx + 2]
+    centroids = bboxes[:, :3] if use_depth else bboxes[:, :2]
+    sizes = bboxes[:, 3:5]
     return centroids, sizes
 
 
