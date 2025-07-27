@@ -4,8 +4,8 @@ import os
 from pathlib import Path
 
 import pandas as pd
+from price_net.configs import ExtractionEvaluationConfig
 from price_net.enums import PriceType
-from price_net.extraction.configs import ExtractionEvaluationConfig
 from price_net.extraction.factory import ExtractorFactory
 from price_net.extraction.parsers import parse_bulk_offer_price
 from price_net.extraction.parsers import parse_buy_x_get_y_price
@@ -237,7 +237,7 @@ def parse_args():
     return parser.parse_args()
 
 
-if __name__ == "__main__":
+def main():
     args = parse_args()
     cfg = ExtractionEvaluationConfig(
         extractor_config_path=Path(args.extractor_cfg),
@@ -248,3 +248,7 @@ if __name__ == "__main__":
         cfg=cfg, exp_name=args.exp_name, result_dir=Path(args.results_dir)
     )
     evaluator.eval()
+
+
+if __name__ == "__main__":
+    main()

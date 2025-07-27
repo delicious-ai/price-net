@@ -10,7 +10,7 @@ import yaml
 from price_net.association.dataset import PriceAssociationDataset
 from price_net.association.heuristics import HEURISTIC_REGISTRY
 from price_net.enums import HeuristicType
-from price_net.schema import PriceAssociationScene
+from price_net.schema import PriceScene
 from price_net.utils import parse_unknown_args
 from tqdm import tqdm
 
@@ -27,7 +27,7 @@ def evaluate(
         dataset_dir / split / PriceAssociationDataset.RAW_PRICE_SCENES_FNAME
     )
     with open(raw_scenes_path, "r") as f:
-        scenes = [PriceAssociationScene(**x) for x in json.load(f)]
+        scenes = [PriceScene(**x) for x in json.load(f)]
     pred_pairs = set()
     actual_pairs = set()
     for scene in tqdm(scenes, desc=f"Evaluating '{heuristic_type.value}' heuristic..."):

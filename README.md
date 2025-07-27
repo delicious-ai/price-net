@@ -1,6 +1,6 @@
-# Learnable Product-Price Attribution for Retail Shelf Images
+# Learning to Attribute Products to Price Tags in Retail Shelf Images
 
-This is the official implementation of "Learnable Product-Price Attribution for Retail Shelf Images", a novel approach to solving retail price attribution using neural networks.
+This is the official implementation of "Learning to Attribute Products to Price Tags in Retail Shelf Images", which proposes the first learnable system for end-to-end retail price attribution.
 
 ## Getting Started
 
@@ -18,13 +18,13 @@ pre-commit install
 
 When you commit new code, the pre-commit hook will run a series of scripts to standardize formatting and run code quality checks. Any issues must be resolved for the commit to go through. If you need to bypass the linters for a specific commit, add the `--no-verify` flag to your git commit command.
 
-## Viewing a Dataset
+## Viewing Instances from BRePS
 
-To view a dataset, simply use the [Data Viewer](notebooks/data_viewer.ipynb). This file is a Jupyter notebook that provides an interactive interface for visualizing individual price scenes.
+To view instances from the **B**everage **Re**tail Price Scenes (BRePS) dataset, simply use the [Data Viewer](notebooks/data_viewer.ipynb). This file is a Jupyter notebook that provides an interactive interface for visualizing individual price scenes. Note that you will need `BRePS` downloaded locally to view it.
 
 ## Training a Product-Price Associator
 
-To train an association model, first fill out an `AssociatorTrainingConfig` (following the [specified schema](src/price_net/configs.py)). Then, run the [training script](src/price_net/training/train_associator.py):
+To train an association model, first fill out an `AssociatorTrainingConfig` (following the [specified schema](src/price_net/configs.py)). Then, run the [training script](src/price_net/association/train.py):
 
 ```bash
 uv run train_associator --config path/to/your/config.yaml
@@ -34,17 +34,27 @@ The training script will save trained weights (both the best in terms of validat
 
 **Note**: If training on a GPU, our enforcement of deterministic operations may mean you need to set `CUBLAS_WORKSPACE_CONFIG=:4096:8` in your environment before running the above script.
 
+## Running a Price Extractor
+
+To run a gemini-based extraction model, set up your `.env` with the following environment variables:
+
+```dotenv
+GOOGLE_APPLICATION_CREDENTIALS={path-to-your-gcloud-auth-json}
+GOOGLE_CLOUD_PROJECT={gcloud-project}
+GOOGLE_CLOUD_LOCATION={gcloud-region}
+```
+
 ## Evaluation
 
 ### Evaluating a Trained Product-Price Associator
 
-To evaluate a product-price associator, first fill out an `AssociatorEvaluationConfig` (see the [specifications](src/price_net/association/configs.py) for details). Then, run the [associator evaluation script](src/price_net/association/evaluate.py) via:
+To evaluate a product-price associator, first fill out an `AssociatorEvaluationConfig` (see the [specifications](src/price_net/configs.py) for details). Then, run the [associator evaluation script](src/price_net/association/evaluate.py) via:
 
 ```bash
 uv run evaluate_associator --config path/to/your/eval/config.yaml
 ```
 
-This script will follow the logging settings specified in the config (WandB vs. local). It will also save evaluation metrics to a `association_metrics.yaml` file in the specified results directory.
+This script will follow the logging settings specified in the config (WandB vs. local). It will also save evaluation metrics to an `association_metrics.yaml` file in the specified results directory.
 
 To get a qualitative sense of how well a model performs for price attribution, use the [Predictions Viewer](notebooks/predictions_viewer.ipynb). This file is a Jupyter notebook that provides an interactive interface for visualizing individual predicted price associations (and comparing them to the ground truth).
 
@@ -61,51 +71,38 @@ uv run evaluate_heuristic_associator \
 
 Evaluation metrics will be saved in a `association_metrics.yaml` file in the specified results directory.
 
-### Evaluating a Price Attribution System
+### Evaluating an End-to-End Price Attribution System
 
-To evaluate an end-to-end price attribution system, run the [attribution system evaluation script](src/price_net/scripts/evaluate_attributions.py):
+To evaluate an end-to-end price attribution system, run the [end-to-end evaluation script](src/price_net/scripts/evaluate_e2e.py):
 
 ```bash
-uv run evaluate_attribution_system --config path/to/attribution/config.yaml
+uv run evaluate_e2e --config path/to/config.yaml
 ```
 
-Running this script requires exactly one of the following (described via the `AttributionEvaluationConfig`):
+This script can either evaluate a VLM-based system or a variant of `PriceLens` (our proposed modular pipeline for price attribution). Since VLM inference is expensive, we recommend cacheing product-price attributions from VLMs in a JSON file (i.e. as a list of json-ified `PriceAttribution` objects, see [the exact schema](src/price_net/schema.py)). Then, in your `AttributionEvaluationConfig` ([definition here](src/price_net/configs.py)), indicate where to find these attributions by including the filepath with the `cached_attributions_path` key.
 
-1. A pre-computed set of attributions (a JSON file with a list of json-ified `PriceAttribution` objects).
-2. A set of pre-computed price extractions and specifications for running price association.
+If evaluating a `PriceLens` stack, the script expects the config to specify a pre-computed set of product detections (labeled by product identity) and price detections (labeled with an extracted price string). These should be stored in a JSON file, with the path indicated under the `cached_detections_path` key in the config. A path to a price associator eval config should also be provided under `associator_eval_config_path` (this sub-config gives instructions for how to load and run the associator).
 
-The specifications mentioned in (2) include either a heuristic method (such as `nearest_per_group`) or a learned associator model (as described by an `AssociatorEvaluationConfig`). Here is what the config would look like for evaluating the price attribution performance of a system that uses heuristic association:
+Here is what an `AttributionEvaluationConfig` file would look like for evaluating a VLM:
 
 ```yaml
 dataset_dir: path/to/dataset/dir
 results_dir: path/to/results/dir
-# The price file is just a list of price bbox IDs and their extracted price
-extracted_prices_path: path/to/prices.json
-heuristic: nearest_below_per_group
+cached_attributions_path: path/to/attributions.json
 ```
 
-Here is what the config would look like for evaluating the price attribution performance of a system that uses a learned association model:
+Here is what the config would look like for evaluating a `PriceLens` stack:
 
 ```yaml
 dataset_dir: path/to/dataset/dir
 results_dir: path/to/results/dir
-extracted_prices_path: path/to/prices.json
+cached_detections_path: path/to/detections.json
 associator_eval_config_path: path/to/associator/eval/config.yaml
 # Used to determine what is considered a valid "association"
 threshold: 0.5
 ```
 
 Evaluation metrics will be saved in an `attribution_metrics.yaml` file in the results directory listed in your attribution config.
-
-## Extraction
-
-To run a gemini-based extraction model, set up your `.env` with the following environment variables:
-
-```dotenv
-GOOGLE_APPLICATION_CREDENTIALS={path-to-your-gcloud-auth-json}
-GOOGLE_CLOUD_PROJECT={gcloud-project}
-GOOGLE_CLOUD_LOCATION={gcloud-region}
-```
 
 ## Development
 

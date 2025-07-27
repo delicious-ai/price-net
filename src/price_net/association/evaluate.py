@@ -1,17 +1,18 @@
 import json
 from argparse import ArgumentParser
 from pathlib import Path
+from typing import Literal
 
 import numpy as np
 import torch
 import yaml
-from price_net.association.configs import AssociatorEvaluationConfig
-from price_net.association.configs import AssociatorTrainingConfig
 from price_net.association.datamodule import PriceAssociationDataModule
 from price_net.association.models import PriceAssociatorLightningModule
+from price_net.configs import AssociatorEvaluationConfig
+from price_net.configs import AssociatorTrainingConfig
 from price_net.enums import Aggregation
 from price_net.enums import PredictionStrategy
-from price_net.schema import PriceAssociationScene
+from price_net.schema import PriceScene
 from sklearn.metrics import average_precision_score
 from sklearn.metrics import jaccard_score
 from sklearn.metrics import precision_recall_fscore_support
@@ -20,7 +21,9 @@ from tqdm import tqdm
 
 
 @torch.inference_mode()
-def evaluate(config: AssociatorEvaluationConfig):
+def evaluate(
+    config: AssociatorEvaluationConfig, split: Literal["val", "test"] = "test"
+):
     model = PriceAssociatorLightningModule.load_from_checkpoint(config.ckpt_path).eval()
     device = model.device
     with open(config.trn_config_path, "r") as f:
@@ -32,11 +35,15 @@ def evaluate(config: AssociatorEvaluationConfig):
         prediction_strategy=training_config.model.prediction_strategy,
         featurization_config=training_config.model.featurization,
     )
-    datamodule.setup("test")
+    if split == "test":
+        datamodule.setup("test")
+        dataset = datamodule.test
+    else:
+        datamodule.setup("validate")
+        dataset = datamodule.val
 
-    dataset = datamodule.test
     with open(dataset.root_dir / dataset.RAW_PRICE_SCENES_FNAME, "r") as f:
-        raw_scenes = [PriceAssociationScene(**scene) for scene in json.load(f)]
+        raw_scenes = [PriceScene(**scene) for scene in json.load(f)]
     raw_scenes = {scene.scene_id: scene for scene in raw_scenes}
 
     y_true = []
@@ -109,11 +116,12 @@ def evaluate(config: AssociatorEvaluationConfig):
 def main():
     parser = ArgumentParser()
     parser.add_argument("--config", type=Path, required=True)
+    parser.add_argument("--split", type=str, choices=["val", "test"], default="test")
     args = parser.parse_args()
 
     with open(args.config, "r") as f:
         eval_config = AssociatorEvaluationConfig(**yaml.safe_load(f))
-    evaluate(config=eval_config)
+    evaluate(config=eval_config, split=args.split)
 
 
 if __name__ == "__main__":
