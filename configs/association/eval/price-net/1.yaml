@@ -1,3 +1,0 @@
-trn_config_path: configs/association/train/price-net/1.yaml
-ckpt_path: ckpt/price-net-1/best_loss.ckpt
-results_dir: results/price-net-1

@@ -1,3 +1,0 @@
-ckpt_path: ckpt/jpn-noagg-diff-nodepth-4/best_loss.ckpt
-results_dir: results/jpn-noagg-diff-nodepth-4
-trn_config_path: configs/association/train/jpn-noagg-diff-nodepth/4.yaml

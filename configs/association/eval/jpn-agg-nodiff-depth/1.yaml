@@ -1,3 +1,0 @@
-ckpt_path: ckpt/jpn-agg-nodiff-depth-1/best_loss.ckpt
-results_dir: results/jpn-agg-nodiff-depth-1
-trn_config_path: configs/association/train/jpn-agg-nodiff-depth/1.yaml
