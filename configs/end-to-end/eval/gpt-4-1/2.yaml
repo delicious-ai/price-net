@@ -1,3 +1,0 @@
-dataset_dir: data/price-attribution-scenes
-results_dir: results/gpt-4-1
-cached_attributions_path: vlm-outputs/gpt-4-1/2.json

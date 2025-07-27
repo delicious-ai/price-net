@@ -1,0 +1,5 @@
+model_name: "gpt-4o"
+dataset_dir: "data/breps/test"
+prompt_path: "prompts/attribute_products_and_prices_from_image.txt"
+output_path: "outputs/attribution/gpt-4o/2.json"
+temperature: 0.0

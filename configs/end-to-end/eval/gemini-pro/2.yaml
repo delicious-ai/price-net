@@ -1,3 +1,0 @@
-dataset_dir: data/price-attribution-scenes
-results_dir: results/gemini-pro
-cached_attributions_path: vlm-outputs/gemini-pro/2.json

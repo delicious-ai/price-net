@@ -1,7 +1,0 @@
-dataset_dir: data/price-attribution-scenes
-results_dir: results/gemini-flash
-extracted_prices_path: data/price-attribution-scenes/test/extracted_prices.json
-heuristic: gemini
-heuristic_kwargs:
-  model: gemini-2.0-flash-lite-001
-  price_product_metadata_path: data/metadata/price-product-gemini-flash.json
