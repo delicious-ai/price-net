@@ -76,7 +76,7 @@ Evaluation metrics will be saved in a `association_metrics.yaml` file in the spe
 To evaluate an end-to-end price attribution system, run the [end-to-end evaluation script](src/price_net/scripts/evaluate_e2e.py):
 
 ```bash
-uv run evaluate_e2e --config path/to/config.yaml
+uv run evaluate_e2e --config path/to/config.yaml --threshold <association-prob-threshold>
 ```
 
 This script can either evaluate a VLM-based system or a variant of `PriceLens` (our proposed modular pipeline for price attribution). Since VLM inference is expensive, we recommend cacheing product-price attributions from VLMs in a JSON file (i.e. as a list of json-ified `PriceAttribution` objects, see [the exact schema](src/price_net/schema.py)). Then, in your `AttributionEvaluationConfig` ([definition here](src/price_net/configs.py)), indicate where to find these attributions by including the filepath with the `cached_attributions_path` key.
@@ -98,8 +98,6 @@ dataset_dir: path/to/dataset/dir
 results_dir: path/to/results/dir
 cached_detections_path: path/to/detections.json
 associator_eval_config_path: path/to/associator/eval/config.yaml
-# Used to determine what is considered a valid "association"
-threshold: 0.5
 ```
 
 Evaluation metrics will be saved in an `attribution_metrics.yaml` file in the results directory listed in your attribution config.
