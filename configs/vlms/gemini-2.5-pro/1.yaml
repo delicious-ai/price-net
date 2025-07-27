@@ -1,0 +1,5 @@
+model_name: "gemini-2.5-pro"
+dataset_dir: "data/breps/test"
+prompt_path: "prompts/attribute_products_and_prices_from_image.txt"
+output_path: "outputs/attribution/gemini-2.5-pro/1.json"
+temperature: 0.0

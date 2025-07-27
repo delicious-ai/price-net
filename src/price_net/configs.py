@@ -101,3 +101,11 @@ class AttributionEvaluationConfig(BaseModel):
                 "`cached_detections_path` is required when using an associator for attribution."
             )
         return self
+
+
+class EndToEndConfig(BaseModel):
+    model_name: str
+    dataset_dir: Path
+    prompt_path: Path
+    output_path: Path
+    temperature: float = 0.0

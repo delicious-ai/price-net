@@ -21,6 +21,8 @@ from google.genai.types import Content
 from google.genai.types import GenerateContentConfig
 from google.genai.types import GenerateContentResponse
 from google.genai.types import Part
+from json_repair import repair_json
+from openai import OpenAI
 from price_net.enums import PriceType
 
 load_dotenv()
@@ -228,6 +230,78 @@ class GeminiExtractor(BaseExtractor):
         )
 
         return gemini
+
+
+class GPTExtractor(BaseExtractor):
+    """OpenAI GPT-based extractor for vision-language tasks"""
+
+    def __init__(
+        self, model_name: str, client: OpenAI, prompt: str, temperature: float
+    ):
+        self.model_name = model_name
+        self.client = client
+        self.prompt = prompt
+        self.temperature = temperature
+
+    @classmethod
+    def get_openai_client(cls):
+        return OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+    def _route_input(self, img_input: Union[str, Path, bytes]) -> str:
+        if isinstance(img_input, (str, Path)):
+            with open(img_input, "rb") as image_file:
+                return base64.b64encode(image_file.read()).decode("utf-8")
+        elif isinstance(img_input, bytes):
+            return base64.b64encode(img_input).decode("utf-8")
+        else:
+            raise TypeError("img_input must be str, Path, or bytes")
+
+    def _api_call(self, img_input: str) -> dict:
+        response = self.client.chat.completions.create(
+            model=self.model_name,
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": self.prompt},
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:image/jpeg;base64,{img_input}"},
+                        },
+                    ],
+                }
+            ],
+            temperature=self.temperature,
+            max_tokens=8192,
+        )
+        return response
+
+    def format(self, price_json: dict) -> np.ndarray:
+        pass
+
+    def __call__(self, img_input: Union[str, Path, bytes]) -> dict:
+        img_b64 = self._route_input(img_input)
+        raw_response = self._api_call(img_b64)
+
+        # Extract content from OpenAI response
+        text_response = raw_response.choices[0].message.content
+
+        # Clean the response text (remove any markdown formatting or extra text)
+        if "```json" in text_response:
+            start = text_response.find("```json") + 7
+            end = text_response.find("```", start)
+            text_response = text_response[start:end].strip()
+        elif "```" in text_response:
+            start = text_response.find("```") + 3
+            end = text_response.find("```", start)
+            text_response = text_response[start:end].strip()
+
+        try:
+            output = json.loads(text_response)
+        except json.JSONDecodeError:
+            text_response = repair_json(text_response)
+            output = json.loads(text_response)
+        return output
 
 
 class EasyOcrExtractor(BaseExtractor):
