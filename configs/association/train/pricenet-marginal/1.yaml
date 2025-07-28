@@ -10,7 +10,7 @@ logging:
 lr: 3e-4
 max_logit_magnitude: 10
 model:
-  aggregation: none
+  aggregation: closest_per_group
   featurization:
     use_delta: false
     use_depth: false
