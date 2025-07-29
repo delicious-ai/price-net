@@ -1,0 +1,5 @@
+dataset_dir: data/breps
+results_dir: results/attribution/price-lens-oracle-detection-extraction-2
+cached_detections_path: data/breps/test/oracle_detections.json
+associator_eval_config_path: configs/association/eval/pricenet/2.yaml
+split: test

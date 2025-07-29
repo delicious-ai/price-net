@@ -121,13 +121,14 @@ def plot_price_scene(
                 prod_id_to_group_id[id_] = group.group_id
                 break
 
-    colors = color_palette(n_colors=len(scene.product_groups))
+    colors = color_palette(palette="hls", n_colors=len(scene.product_groups))
     color_key = {}
     plotted = set()
+
     for price_group in scene.price_groups:
         for price_bbox_id in price_group.price_bbox_ids:
             price_centroid = price_centroids[price_bbox_id]
-            ax.scatter(*price_centroid, marker="x", color="black")
+            ax.scatter(*price_centroid, marker="x", color="black", zorder=10)
             plotted.add(price_bbox_id)
             for prod_bbox_id in price_group.product_bbox_ids:
                 prod_centroid = product_centroids[prod_bbox_id]
@@ -139,7 +140,7 @@ def plot_price_scene(
                 ax.plot(
                     [price_centroid[0], prod_centroid[0]],
                     [price_centroid[1], prod_centroid[1]],
-                    c="gray",
+                    c=color,
                     alpha=0.5,
                     lw=0.5,
                 )
@@ -148,14 +149,15 @@ def plot_price_scene(
     unmatched_prices = [
         price_centroids[id_] for id_ in set(price_centroids.keys()).difference(plotted)
     ]
-    unmatched_products = [
-        product_centroids[id_]
-        for id_ in set(product_centroids.keys()).difference(plotted)
-    ]
     for centroid in unmatched_prices:
         ax.scatter(*centroid, marker="x", color="black")
-    for centroid in unmatched_products:
-        ax.scatter(*centroid, marker="o", edgecolors="black", facecolors="none")
+    for id_ in set(product_centroids.keys()).difference(plotted):
+        group_id = prod_id_to_group_id[id_]
+        color = colors[prod_id_to_group_idx[id_]]
+        if group_id not in color_key:
+            color_key[group_id] = color
+        centroid = product_centroids[id_]
+        ax.scatter(*centroid, marker="o", color=color)
 
     ax.set_xlim(0.0, 1.0)
     ax.set_ylim(1.0, 0.0)
