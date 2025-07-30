@@ -1,7 +1,7 @@
 [project]
 name = "price-net"
 version = "0.1.0"
-description = "Official implementation of 'Learnable Product-Price Attribution for Retail Shelf Images'."
+description = "Official implementation of 'Learning to Attribute Products to Prices in Retail Shelf Images'."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [

@@ -1,6 +1,6 @@
-# Learning to Attribute Products to Price Tags in Retail Shelf Images
+# Learning to Attribute Products to Prices in Retail Shelf Images
 
-This is the official implementation of "Learning to Attribute Products to Price Tags in Retail Shelf Images", which proposes the first learnable system for end-to-end retail price attribution.
+This is the official implementation of "Learning to Attribute Products to Prices in Retail Shelf Images", which proposes the first learnable system for end-to-end retail price attribution.
 
 ## Getting Started
 
