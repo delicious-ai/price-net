@@ -20,7 +20,7 @@ When you commit new code, the pre-commit hook will run a series of scripts to st
 
 ## Viewing Instances from BRePS
 
-To view instances from the **B**everage **Re**tail Price Scenes (BRePS) dataset, simply use the [Data Viewer](notebooks/data_viewer.ipynb). This file is a Jupyter notebook that provides an interactive interface for visualizing individual price scenes. Note that you will need `BRePS` downloaded locally to view it.
+To view instances from the **B**everage **Re**tail **P**rice **S**cenes (BRePS) dataset, simply use the [Data Viewer](notebooks/data_viewer.ipynb). This file is a Jupyter notebook that provides an interactive interface for visualizing individual price scenes. Note that you will need `BRePS` downloaded locally to view it.
 
 ## Training a Product-Price Associator
 
