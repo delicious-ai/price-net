@@ -92,13 +92,16 @@ def joint_prediction_collate_fn(
 
 
 def plot_price_scene(
-    scene: PriceScene, ax: plt.Axes | None = None
+    scene: PriceScene,
+    ax: plt.Axes | None = None,
+    show_associations: bool = True,
 ) -> tuple[plt.Axes, dict[str, Color]]:
     """Plot the given price attribution scene as a graph (where nodes are the 2d centroids and edges exist if a product/price are associated).
 
     Args:
         scene (PriceAttributionScene): The scene to plot.
         ax (plt.Axes | None, optional): If specified, the axes to plot on. Defaults to None (creates one).
+        show_associations (bool, optional): Whether/not to plot associations between products and prices. Defaults to True.
 
     Returns:
         tuple[plt.Axes, dict[str, Color]: The axes on which the scene is plotted, and a dict that specifies which color each product group was assigned.
@@ -137,13 +140,14 @@ def plot_price_scene(
                 if group_id not in color_key:
                     color_key[group_id] = color
                 ax.scatter(*prod_centroid, marker="o", color=color)
-                ax.plot(
-                    [price_centroid[0], prod_centroid[0]],
-                    [price_centroid[1], prod_centroid[1]],
-                    c=color,
-                    alpha=0.5,
-                    lw=0.5,
-                )
+                if show_associations:
+                    ax.plot(
+                        [price_centroid[0], prod_centroid[0]],
+                        [price_centroid[1], prod_centroid[1]],
+                        c=color,
+                        alpha=0.5,
+                        lw=0.5,
+                    )
                 plotted.add(prod_bbox_id)
 
     unmatched_prices = [
