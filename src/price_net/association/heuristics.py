@@ -53,8 +53,8 @@ class AssignProductToNearestPrice(Heuristic):
             price_bboxes.append(bbox.to_tensor())
         price_bboxes = torch.stack(price_bboxes)
 
-        prod_centroids = prod_bboxes[:, :3]
-        price_centroids = price_bboxes[:, :3]
+        prod_centroids = prod_bboxes[:, :2]
+        price_centroids = price_bboxes[:, :2]
 
         distances = torch.cdist(prod_centroids, price_centroids, p=2)
         idx_of_nearest: list[int] = torch.argmin(distances, dim=1).tolist()
@@ -87,7 +87,7 @@ class AssignProductToNearestPricePerGroup(Heuristic):
                     for prod_id in group.product_bbox_ids
                 ]
             )
-            distances = torch.cdist(group_bboxes[:, :3], price_bboxes[:, :3], p=2)
+            distances = torch.cdist(group_bboxes[:, :2], price_bboxes[:, :2], p=2)
             idx_of_nearest = torch.argmin(distances).item() % distances.shape[1]
             implied_group = PriceGroup(
                 product_bbox_ids=group.product_bbox_ids,
@@ -114,8 +114,8 @@ class AssignProductToNearestPriceBelow(Heuristic):
             price_bboxes.append(bbox.to_tensor())
         price_bboxes = torch.stack(price_bboxes)
 
-        prod_centroids = prod_bboxes[:, :3]
-        price_centroids = price_bboxes[:, :3]
+        prod_centroids = prod_bboxes[:, :2]
+        price_centroids = price_bboxes[:, :2]
 
         distances = torch.cdist(prod_centroids, price_centroids, p=2)
         product_y = prod_centroids[:, 1].unsqueeze(1)
@@ -156,8 +156,8 @@ class AssignProductToNearestPriceBelowPerGroup(Heuristic):
                     for prod_id in group.product_bbox_ids
                 ]
             )
-            group_centroids = group_bboxes[:, :3]
-            price_centroids = price_bboxes[:, :3]
+            group_centroids = group_bboxes[:, :2]
+            price_centroids = price_bboxes[:, :2]
             distances = torch.cdist(group_centroids, price_centroids, p=2)
             group_y = group_centroids[:, 1].unsqueeze(1)
             price_y = price_centroids[:, 1].unsqueeze(0)
@@ -195,8 +195,8 @@ class AssignProductToAllPricesWithinEpsilon(Heuristic):
             price_bboxes.append(bbox.to_tensor())
         price_bboxes = torch.stack(price_bboxes)
 
-        prod_centroids = prod_bboxes[:, :3]
-        price_centroids = price_bboxes[:, :3]
+        prod_centroids = prod_bboxes[:, :2]
+        price_centroids = price_bboxes[:, :2]
 
         distances = torch.cdist(prod_centroids, price_centroids, p=2)
         pairs_within_eps = torch.nonzero(distances < self.epsilon, as_tuple=False)

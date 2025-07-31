@@ -1,5 +1,4 @@
 import json
-import statistics
 from argparse import ArgumentParser
 from itertools import product
 from pathlib import Path
@@ -59,39 +58,9 @@ def evaluate(
 
     metrics = {"precision": precision, "recall": recall, "f1": f1}
     results_dir.mkdir(exist_ok=True, parents=True)
-    if Path(results_dir / "association_metrics.yaml").exists():
-        exp = yaml.safe_load(open(results_dir / "association_metrics.yaml", "r"))
-        run_id = max(int(k) for k in exp["runs"].keys()) + 1
-        exp["runs"][run_id] = metrics
-        exp["overall"] = {
-            "mean": {
-                "precision": statistics.mean(
-                    [exp["runs"][k]["precision"] for k in exp["runs"].keys()]
-                ),
-                "recall": statistics.mean(
-                    [exp["runs"][k]["recall"] for k in exp["runs"].keys()]
-                ),
-                "f1": statistics.mean(
-                    [exp["runs"][k]["f1"] for k in exp["runs"].keys()]
-                ),
-            },
-            "std": {
-                "precision": statistics.stdev(
-                    [exp["runs"][k]["precision"] for k in exp["runs"].keys()]
-                ),
-                "recall": statistics.stdev(
-                    [exp["runs"][k]["recall"] for k in exp["runs"].keys()]
-                ),
-                "f1": statistics.stdev(
-                    [exp["runs"][k]["f1"] for k in exp["runs"].keys()]
-                ),
-            },
-        }
-    else:
-        exp = {"runs": {1: metrics}}
-    with open(results_dir / "eval_metrics.yaml", "w") as f:
-        yaml.safe_dump(exp, f)
-    pprint(exp)
+    with open(results_dir / "association_metrics.yaml", "w") as f:
+        yaml.safe_dump(metrics, f)
+    pprint(metrics)
 
 
 def main():
