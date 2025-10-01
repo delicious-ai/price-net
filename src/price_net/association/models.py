@@ -259,8 +259,8 @@ class PriceAssociatorLightningModule(L.LightningModule):
         self.log(
             f"{step_type}/loss",
             loss,
-            on_epoch=True,
-            on_step=False,
+            on_epoch=step_type == "val",
+            on_step=step_type == "train",
             prog_bar=True,
             batch_size=num_associations,
         )
@@ -281,6 +281,11 @@ class PriceAssociatorLightningModule(L.LightningModule):
         self.log(f"{step_type}/precision", precision)
         self.log(f"{step_type}/recall", recall)
         self.log(f"{step_type}/f1", f1)
+
+    def on_train_batch_end(self, *args, **kwargs):
+        lr_scheduler = self.trainer.lr_scheduler_configs[0]
+        lr = lr_scheduler.scheduler.get_last_lr()[0]
+        self.log("lr", lr)
 
     def on_train_epoch_end(self):
         self._epoch_end("train")

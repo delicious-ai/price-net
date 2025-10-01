@@ -58,7 +58,6 @@ def _get_learned_attributions(
         training_config = AssociatorTrainingConfig(**yaml.safe_load(f))
 
     aggregation = training_config.model.aggregation
-    use_depth = training_config.model.featurization.use_depth
     transform = PriceAssociationDataModule._get_transform(
         config=training_config.model.featurization
     )
@@ -99,7 +98,6 @@ def _get_learned_attributions(
 
             # We perform any necessary aggregation (e.g., closest per product group).
             if aggregation == Aggregation.CLOSEST_PER_GROUP:
-                centroid_end_dim = 3 if use_depth else 2
                 df = (
                     df.with_columns(
                         pl.struct("price_bbox", "product_bbox")
@@ -107,8 +105,8 @@ def _get_learned_attributions(
                             lambda s: sum(
                                 (a - b) ** 2
                                 for a, b in zip(
-                                    s["price_bbox"][:centroid_end_dim],
-                                    s["product_bbox"][:centroid_end_dim],
+                                    s["price_bbox"][:2],
+                                    s["product_bbox"][:2],
                                 )
                             )
                             ** 0.5,

@@ -1,4 +1,3 @@
-from functools import partial
 from pathlib import Path
 from typing import Callable
 from typing import Literal
@@ -66,7 +65,6 @@ class PriceAssociationDataModule(L.LightningDataModule):
             root_dir=self.data_dir / split,
             input_transform=self.transform,
             aggregation=self.aggregation,
-            use_depth=self.featurization_config.use_depth,
         )
 
     def train_dataloader(self):
@@ -107,16 +105,14 @@ class PriceAssociationDataModule(L.LightningDataModule):
 
     @staticmethod
     def _get_transform(config: FeaturizationConfig) -> InputTransform:
-        _split_bboxes = partial(split_bboxes, use_depth=config.use_depth)
-
         class _Transform(InputTransform):
             def __call__(
                 self, prod_bboxes: torch.Tensor, price_bboxes: torch.Tensor
             ) -> torch.Tensor:
                 features = []
 
-                prod_centroids, prod_wh = _split_bboxes(prod_bboxes)
-                price_centroids, price_wh = _split_bboxes(price_bboxes)
+                prod_centroids, prod_wh = split_bboxes(prod_bboxes)
+                price_centroids, price_wh = split_bboxes(price_bboxes)
 
                 if config.use_delta:
                     features.append(prod_centroids - price_centroids)

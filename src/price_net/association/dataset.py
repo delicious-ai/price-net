@@ -25,7 +25,6 @@ class PriceAssociationDataset(Dataset):
         "is_associated": pl.Int8,
     }
     IMAGES_DIR = "images"
-    DEPTH_MAPS_DIR = "depth-maps"
     RAW_PRICE_SCENES_FNAME = "raw_price_scenes.json"
     INSTANCES_FNAME = "instances.parquet"
 
@@ -34,7 +33,6 @@ class PriceAssociationDataset(Dataset):
         root_dir: str | Path,
         input_transform: InputTransform = ConcatenateBoundingBoxes(),
         aggregation: Aggregation = Aggregation.NONE,
-        use_depth: bool = True,
     ):
         """Initialize a `PriceAssociationDataset`.
 
@@ -42,17 +40,14 @@ class PriceAssociationDataset(Dataset):
             root_dir (str | Path): Root directory where the dataset is stored.
             input_transform (InputTransform, optional): Transform to apply to each input of the dataset when `__getitem__` is called. Defaults to `ConcatenateBoundingBoxes`.
             aggregation (Aggregation, optional): Determines how we parse instances for `__getitem__`. Defaults to Aggregation.NONE (each potential product-price association pair is returned for a scene).
-            use_depth (bool, optional): Whether/not to use depth if aggregating by "closest_per_group".
         """
         self.root_dir = Path(root_dir)
         self.images_dir = self.root_dir / "images"
-        self.depth_maps_dir = self.root_dir / "depth-maps"
         self.price_scenes_file = self.root_dir / self.RAW_PRICE_SCENES_FNAME
         self._check_expected_files_exist()
 
         self.input_transform = input_transform
         self.aggregation = aggregation
-        self.use_depth = use_depth
         self.instances = self._get_instances()
         self.scene_ids = []
         self.scene_id_to_indices = defaultdict(list)
@@ -76,11 +71,10 @@ class PriceAssociationDataset(Dataset):
     def _check_expected_files_exist(self):
         if not self.price_scenes_file.exists():
             raise FileNotFoundError(f"Missing '{self.price_scenes_file}'.")
-        for dir in (self.images_dir, self.depth_maps_dir):
-            if not dir.exists():
-                raise FileNotFoundError(f"Missing '{dir}' directory.")
-            if not any(dir.iterdir()):
-                raise FileNotFoundError(f"'{dir}' directory is empty.")
+        if not self.images_dir.exists():
+            raise FileNotFoundError(f"Missing '{self.images_dir}' directory.")
+        if not any(self.images_dir.iterdir()):
+            raise FileNotFoundError(f"'{self.images_dir}' directory is empty.")
 
     def _get_instances(self) -> pl.DataFrame:
         instances_path = self.root_dir / self.INSTANCES_FNAME
@@ -109,15 +103,14 @@ class PriceAssociationDataset(Dataset):
 
     def _prepare_instances(self, instances: pl.DataFrame):
         if self.aggregation == Aggregation.CLOSEST_PER_GROUP:
-            centroid_end_dim = 3 if self.use_depth else 2
             instances = instances.with_columns(
                 pl.struct("price_bbox", "product_bbox")
                 .map_elements(
                     lambda s: sum(
                         (a - b) ** 2
                         for a, b in zip(
-                            s["price_bbox"][:centroid_end_dim],
-                            s["product_bbox"][:centroid_end_dim],
+                            s["price_bbox"][:2],
+                            s["product_bbox"][:2],
                         )
                     )
                     ** 0.5,

@@ -17,7 +17,6 @@ class FeaturizationConfig(BaseModel):
     use_delta: bool = True
     use_prod_centroid: bool = True
     use_price_centroid: bool = True
-    use_depth: bool = True
     use_prod_size: bool = True
     use_price_size: bool = True
 
